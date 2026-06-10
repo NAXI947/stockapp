@@ -1,0 +1,1 @@
+"""Stocknew backend package."""

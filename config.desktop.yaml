@@ -1,0 +1,79 @@
+app:
+  env: desktop
+database:
+  driver: sqlite
+  path: data/stocknew.db
+  pool_size: 5
+  pool_timeout: 30
+tushare:
+  token: ''
+  base_url: http://lianghua.nanyangqiankun.top
+  use_mock: false
+  timeout_seconds: 60
+alert:
+  enabled: false
+  webhook_url: ''
+ai:
+  enabled: false
+  provider: openai_compatible
+  base_url: https://api.openai.com/v1
+  api_key: ''
+  model: ''
+  models: []
+  prompt_strategy: auto
+  timeout_seconds: 20
+security:
+  auth_enabled: false
+  api_token: ''
+  rate_limit_per_minute: 120
+  cors_origins:
+  - '*'
+jobs:
+  max_workers: 10
+  timeout_seconds: 21600
+  qps_limit: 2.0
+  qps_burst: 4
+  retry_max_attempts: 5
+  retry_base_delay: 0.8
+  retry_max_delay: 12.0
+  heartbeat_interval_seconds: 30
+  verbose_request_logs: false
+  api_qps_limits:
+    stock_basic: 4.0
+    trade_cal: 4.0
+    daily: 4.0
+    adj_factor: 4.0
+    daily_basic: 4.0
+    dc_index: 2.0
+    dc_member: 4.0
+    top_list: 4.0
+    share_float: 4.0
+    fina_indicator: 4.0
+    cyq_perf: 2.0
+    index_classify: 2.0
+    index_member_all: 2.0
+  api_concurrency_limits:
+    stock_basic: 2
+    trade_cal: 2
+    daily: 4
+    adj_factor: 4
+    daily_basic: 4
+    dc_index: 1
+    dc_member: 2
+    cyq_perf: 1
+    top_list: 2
+    share_float: 2
+    fina_indicator: 2
+    index_classify: 1
+    index_member_all: 1
+  table_concurrency_limits:
+    t_stock_basic: 2
+    t_trade_cal: 2
+    t_daily_bar: 4
+    t_adj_factor: 4
+    t_daily_basic: 4
+    t_concept_detail: 2
+    t_cyq_perf: 1
+    t_top_list: 2
+    t_share_float: 2
+    t_fin_indicator: 2
