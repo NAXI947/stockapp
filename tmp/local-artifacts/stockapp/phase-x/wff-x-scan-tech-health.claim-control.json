@@ -1,0 +1,128 @@
+{
+  "artifact_metadata": {
+    "artifact_id": "px:wff-x-scan-tech-health",
+    "claim_count": 1,
+    "claim_realization_mode": "agentic-structured",
+    "downstream_consumed": true,
+    "has_mermaid": false,
+    "has_prose_sections": true,
+    "has_tables": false,
+    "high_downstream_trust": true,
+    "inference_policy": "routing-hints-only-not-claim-truth",
+    "source_count": 2,
+    "view_count": 2
+  },
+  "claim_authority": {},
+  "claim_index": {
+    "claims": [
+      {
+        "id": "PX-ASSESSMENT-ONLY-001",
+        "kind": "phasex_profile_boundary",
+        "source_refs": [
+          "phasex-wave1-manifest.md#selected_profile"
+        ],
+        "status": "accepted",
+        "text": "PhaseX case stockapp uses the assessment-only profile boundary."
+      }
+    ],
+    "version": "claim-index/v0.1"
+  },
+  "claim_realizations": {
+    "items": [
+      {
+        "block_id": "px:wff-x-scan-tech-health:block-001",
+        "claim_id": "PX-ASSESSMENT-ONLY-001",
+        "realization_status": "declared",
+        "realization_text": "PhaseX case stockapp uses the assessment-only profile boundary.",
+        "source_refs": [
+          "phasex-wave1-manifest.md#selected_profile"
+        ],
+        "view_id": "px:wff-x-scan-tech-health"
+      }
+    ],
+    "version": "claim-realization/v0.1"
+  },
+  "coverage_obligations": {
+    "items": [
+      {
+        "claim_id": "PX-ASSESSMENT-ONLY-001",
+        "required_view_ids": [
+          "px:wff-x-scan-tech-health"
+        ]
+      }
+    ],
+    "version": "coverage-obligations/v0.1"
+  },
+  "names": {
+    "items": [],
+    "version": "canonical-names/v0.1"
+  },
+  "proposed_claims": {
+    "claims": []
+  },
+  "relations": {
+    "items": [],
+    "version": "claim-relations/v0.1"
+  },
+  "render_refs": {
+    "artifact_hash": "sha256:857cdbc99f5d5740a8a13d281bd66473206e195490e2c53792c85ac7c4e05136",
+    "artifact_id": "px:wff-x-scan-tech-health",
+    "artifact_version": "artifact:v1",
+    "claim_surface_hash": "sha256:70adac221bda7ba24f52463c2ddfa65a7791ad44768cbd95283a28b41176cba6",
+    "claim_surface_version": "claim-index/v0.1",
+    "refs": [
+      {
+        "audit_status": "pass",
+        "block_id": "px:wff-x-scan-tech-health:block-001",
+        "rendered_claim_refs": [
+          "PX-ASSESSMENT-ONLY-001"
+        ],
+        "source_claim_refs": [
+          "PX-ASSESSMENT-ONLY-001"
+        ],
+        "view_id": "px:wff-x-scan-tech-health"
+      }
+    ],
+    "upstream_artifact_paths": [],
+    "upstream_surface_paths": []
+  },
+  "semantic_surface_summary": {
+    "claim_realizations": {
+      "count": 1,
+      "status": "populated"
+    },
+    "coverage_obligations": {
+      "count": 1,
+      "status": "populated"
+    },
+    "names": {
+      "count": 0,
+      "status": "missing"
+    },
+    "relations": {
+      "count": 0,
+      "status": "missing"
+    },
+    "semantic_claim_ceiling": "coverage-bound; semantic relations and canonical names not generated",
+    "version": "semantic-surface-summary/v0.1"
+  },
+  "writing_plan": {
+    "artifact_id": "px:wff-x-scan-tech-health",
+    "route": "path_b",
+    "version": "writing-plan/v0.1",
+    "views": [
+      {
+        "available_claim_refs": [
+          "PX-ASSESSMENT-ONLY-001"
+        ],
+        "rendered_claim_refs": [
+          "PX-ASSESSMENT-ONLY-001"
+        ],
+        "required_claim_refs": [
+          "PX-ASSESSMENT-ONLY-001"
+        ],
+        "view_id": "px:wff-x-scan-tech-health"
+      }
+    ]
+  }
+}

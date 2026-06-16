@@ -1,0 +1,118 @@
+{
+  "artifact_kind": "phasex-claim-control-sidecar-report",
+  "artifacts": [
+    {
+      "artifact_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\phasex-wave1-manifest.md",
+      "claim_ceiling": "claim-controlled",
+      "classifications": [],
+      "conflicting_claim_refs": [],
+      "explicit_claim_refs": [
+        "PX-ASSESSMENT-ONLY-001"
+      ],
+      "overall_status": "pass",
+      "proposed_claim_refs": [],
+      "route_decision": {
+        "artifact_id": "px:phasex-wave1-manifest",
+        "artifact_kind": "claim-control-route-decision",
+        "creates_claims": false,
+        "creates_evidence_rows": false,
+        "metadata": {
+          "claim_count": 0,
+          "has_rich_view": true,
+          "source_count": 2,
+          "view_count": 1
+        },
+        "override_applied": true,
+        "profile": "phasex",
+        "reason": "high-downstream-trust;multi-source-or-multi-view-artifact;rich-rendered-view-surface",
+        "reasons": [
+          "high-downstream-trust",
+          "multi-source-or-multi-view-artifact",
+          "rich-rendered-view-surface"
+        ],
+        "required_contract": "path-b-complex-artifact",
+        "required_mechanism": "validate_path_b_surface",
+        "route": "path_b"
+      },
+      "sidecar_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\phasex-wave1-manifest.claim-control.json",
+      "unknown_claim_refs": []
+    },
+    {
+      "artifact_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\wff-x-scan-code-baseline.md",
+      "claim_ceiling": "claim-controlled",
+      "classifications": [],
+      "conflicting_claim_refs": [],
+      "explicit_claim_refs": [
+        "PX-ASSESSMENT-ONLY-001"
+      ],
+      "overall_status": "pass",
+      "proposed_claim_refs": [],
+      "route_decision": {
+        "artifact_id": "px:wff-x-scan-code-baseline",
+        "artifact_kind": "claim-control-route-decision",
+        "creates_claims": false,
+        "creates_evidence_rows": false,
+        "metadata": {
+          "claim_count": 0,
+          "has_rich_view": true,
+          "source_count": 2,
+          "view_count": 1
+        },
+        "override_applied": true,
+        "profile": "phasex",
+        "reason": "high-downstream-trust;multi-source-or-multi-view-artifact;rich-rendered-view-surface",
+        "reasons": [
+          "high-downstream-trust",
+          "multi-source-or-multi-view-artifact",
+          "rich-rendered-view-surface"
+        ],
+        "required_contract": "path-b-complex-artifact",
+        "required_mechanism": "validate_path_b_surface",
+        "route": "path_b"
+      },
+      "sidecar_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\wff-x-scan-code-baseline.claim-control.json",
+      "unknown_claim_refs": []
+    },
+    {
+      "artifact_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\wff-x-scan-tech-health.md",
+      "claim_ceiling": "claim-controlled",
+      "classifications": [],
+      "conflicting_claim_refs": [],
+      "explicit_claim_refs": [
+        "PX-ASSESSMENT-ONLY-001"
+      ],
+      "overall_status": "pass",
+      "proposed_claim_refs": [],
+      "route_decision": {
+        "artifact_id": "px:wff-x-scan-tech-health",
+        "artifact_kind": "claim-control-route-decision",
+        "creates_claims": false,
+        "creates_evidence_rows": false,
+        "metadata": {
+          "claim_count": 0,
+          "has_rich_view": true,
+          "source_count": 2,
+          "view_count": 1
+        },
+        "override_applied": true,
+        "profile": "phasex",
+        "reason": "high-downstream-trust;multi-source-or-multi-view-artifact;rich-rendered-view-surface",
+        "reasons": [
+          "high-downstream-trust",
+          "multi-source-or-multi-view-artifact",
+          "rich-rendered-view-surface"
+        ],
+        "required_contract": "path-b-complex-artifact",
+        "required_mechanism": "validate_path_b_surface",
+        "route": "path_b"
+      },
+      "sidecar_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-x\\wff-x-scan-tech-health.claim-control.json",
+      "unknown_claim_refs": []
+    }
+  ],
+  "claim_ceiling": "claim-controlled",
+  "creates_claims": false,
+  "overall_status": "pass",
+  "routing_policy": "default Path B for PX generated docs because they are multi-source downstream handoff artifacts",
+  "uses_rendered_views_as_truth": false
+}

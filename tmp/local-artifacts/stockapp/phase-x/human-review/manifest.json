@@ -1,0 +1,150 @@
+{
+  "artifacts": [
+    {
+      "canonical_path": "phasex-wave1-manifest.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/phasex-wave1-manifest.md",
+      "label": "PhaseX manifest",
+      "note": "",
+      "optional": false,
+      "selected_source_path": "phasex-wave1-manifest.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "wff-x-scan-code-baseline.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/wff-x-scan-code-baseline.md",
+      "label": "Code baseline",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "wff-x-scan-code-baseline.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "wff-x-scan-tech-health.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/wff-x-scan-tech-health.md",
+      "label": "Tech health",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "wff-x-scan-tech-health.md",
+      "source_kind": "canonical-fallback"
+    }
+  ],
+  "canonical_authority_note": "review artifacts are copies for reading; canonical source artifacts remain at their original paths",
+  "claim_ceiling_blocks_ready": true,
+  "claim_ceiling_notes": [
+    "PX separates observed system facts, Agentic inference, unknowns, and route recommendations.",
+    "PX does not prove production migration safety or arbitrary brownfield-system quality without fresh evidence and review."
+  ],
+  "claim_ceiling_report": {
+    "artifact_kind": "claim-ceiling-report.absent",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "unknown",
+    "inputs": {},
+    "policy": "Missing claim ceiling evidence cannot be upgraded by human or downstream review.",
+    "present": false,
+    "reasons": [
+      {
+        "ceiling": "unknown",
+        "detail": "No machine-readable claim ceiling report was found.",
+        "reason": "claim_ceiling_report_missing",
+        "signal": "claim_ceiling_report"
+      }
+    ],
+    "requested_formal_state": "",
+    "resolved_formal_state": "unknown",
+    "source": ""
+  },
+  "generated_at": "2026-06-12T13:49:53+00:00",
+  "machine_working_areas": [],
+  "missing_artifacts": [
+    {
+      "category": "primary",
+      "label": "DB baseline",
+      "note": "",
+      "optional": true,
+      "source": "wff-x-scan-db-baseline.md"
+    },
+    {
+      "category": "primary",
+      "label": "Business architecture scan",
+      "note": "",
+      "optional": true,
+      "source": "wff-x-scan-biz-arch.md"
+    },
+    {
+      "category": "primary",
+      "label": "Test protection plan",
+      "note": "",
+      "optional": true,
+      "source": "wff-x-plan-test-protection.md"
+    },
+    {
+      "category": "primary",
+      "label": "Target-driver intake",
+      "note": "",
+      "optional": true,
+      "source": "wff-x-intake-target-driver.md"
+    }
+  ],
+  "phase": "phasex",
+  "primary_instruction": "Start with the Wave-1 manifest, then read the selected scan / health / handoff outputs for facts, inferences, unknowns, and route decisions.",
+  "red_team_findings_record": {
+    "authority": "AI/external red-team review must record findings before reading or relying on scores/final verdicts",
+    "path": "human-review/RED_TEAM_FINDINGS.md",
+    "required_before_scorecards": true,
+    "review_path": "human-review/RED_TEAM_FINDINGS.md",
+    "status": "template-generated"
+  },
+  "red_team_findings_status": {
+    "anchored_evidence_checks": [],
+    "claim_ceiling_after_review": "unfilled",
+    "claim_ceiling_after_review_blocks_ready": false,
+    "claim_ceiling_after_review_state": "",
+    "exists": true,
+    "human_review_blocks_ready": true,
+    "path": "human-review/RED_TEAM_FINDINGS.md",
+    "reasons": [
+      "evidence inspected is empty",
+      "missing evidence for Claim Ceiling Consumption",
+      "missing evidence for Trace Causality Sample",
+      "unfilled final review field: claim_ceiling_after_review",
+      "unfilled final review field: decision",
+      "unfilled final review field: return_or_followup_required",
+      "unfilled final review field: same_source_test_risk",
+      "unfilled review field"
+    ],
+    "required_review_checks": [
+      "Claim Ceiling Consumption",
+      "Trace Causality Sample"
+    ],
+    "return_or_followup_required": false,
+    "review_blocks_ready": true,
+    "review_path": "human-review/RED_TEAM_FINDINGS.md",
+    "review_red_team_status": "review-bound",
+    "status": "review-bound",
+    "usable_as_human_review_evidence": false,
+    "usable_as_review_evidence": false
+  },
+  "red_team_review_checks": [
+    {
+      "check": "Claim ceiling consumption",
+      "failure_signal": "review-bound, suggested, unknown, or missing ceiling is described as complete/pass-ready",
+      "required_evidence": "Confirm the machine claim ceiling below was consumed and not upgraded by the review."
+    },
+    {
+      "check": "Trace causality sample",
+      "failure_signal": "trace ID appears but chain status is suggested/review/unresolved or lacks code/test landing",
+      "required_evidence": "Sample one P1/P2 source obligation through downstream trace, implementation, and test evidence."
+    }
+  ],
+  "review_model": "AI / External Red-Team Review",
+  "review_surface_dir": "human-review",
+  "schema_version": "human-review-surface.v1",
+  "surface_dir": "human-review",
+  "title": "PhaseX AI / External Red-Team Review"
+}

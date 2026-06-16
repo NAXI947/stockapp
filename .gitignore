@@ -40,3 +40,9 @@ build/
 *.egg-info/
 /skills
 .exe
+
+.wff/
+wff/
+.claude/
+wff-v1.5.3-skills-install-pack/
+tmp/
