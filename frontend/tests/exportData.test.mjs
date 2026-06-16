@@ -67,7 +67,7 @@ function rejectLabel(reason) {
 }
 
 assert.equal(getPicksExportFilename('json', '20260527', 'normal'), 'picks_breakout_20260527.json')
-assert.equal(getPicksExportFilename('csv', '20260527', 'ambush'), 'picks_ambush_20260527.csv')
+assert.equal(getPicksExportFilename('csv', '20260527', 'sniper'), 'picks_sniper_20260527.csv')
 
 const breakoutPayload = buildPicksExportPayload({
   rows,
@@ -79,23 +79,28 @@ assert.equal(breakoutPayload.strategy_name, '阻力最小爆发模型')
 assert.equal(breakoutPayload.total, 1)
 assert.equal(breakoutPayload.passed, 1)
 
-const ambushPayload = buildPicksExportPayload({
+const sniperPayload = buildPicksExportPayload({
   rows,
-  mode: 'ambush',
+  mode: 'sniper',
   tradeDate: '20260527',
   passed: 1,
 })
-assert.equal(ambushPayload.strategy_name, '预期埋伏池')
-assert.equal(ambushPayload.data[0].expected_logic, '低位放量')
+assert.equal(sniperPayload.strategy_name, '极简狙击手评分')
 
 const csv = buildPicksCsv({
-  rows,
-  mode: 'ambush',
+  rows: [
+    {
+      ...rows[0],
+      score_change: 5,
+      trend_reason: '筹码真空大幅改善',
+    }
+  ],
+  mode: 'sniper',
   tradeDate: '20260527',
   getStrategyFieldLabel: label,
   getRejectReasonLabel: rejectLabel,
 })
 assert.match(csv, /^代码,名称,行业/)
 assert.match(csv, /"金融,权重"/)
-assert.match(csv, /低位放量/)
-assert.match(csv, /是/)
+assert.match(csv, /筹码真空大幅改善/)
+assert.match(csv, /\+5/)

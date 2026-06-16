@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS t_strategy_daily (
   ts_code TEXT NOT NULL,
   trade_date TEXT NOT NULL,
   ma5 REAL,
+  ma10 REAL,
   ma20 REAL,
   ma60 REAL,
   upper_space REAL,
@@ -232,3 +233,67 @@ CREATE TABLE IF NOT EXISTS t_ambush_pool (
 );
 CREATE INDEX IF NOT EXISTS idx_ambush_status ON t_ambush_pool (status);
 CREATE INDEX IF NOT EXISTS idx_ambush_add_date ON t_ambush_pool (add_date);
+
+CREATE TABLE IF NOT EXISTS t_weekly_bar (
+  ts_code TEXT NOT NULL,
+  trade_date TEXT NOT NULL,
+  open REAL,
+  high REAL,
+  low REAL,
+  close REAL,
+  vol REAL,
+  amount REAL,
+  pct_chg REAL,
+  PRIMARY KEY (ts_code, trade_date)
+);
+CREATE INDEX IF NOT EXISTS idx_weekly_bar_trade_date ON t_weekly_bar (trade_date);
+
+CREATE TABLE IF NOT EXISTS t_stk_holdernumber (
+  ts_code TEXT NOT NULL,
+  ann_date TEXT,
+  end_date TEXT NOT NULL,
+  holder_num INTEGER,
+  PRIMARY KEY (ts_code, end_date)
+);
+CREATE INDEX IF NOT EXISTS idx_stk_holdernumber_end_date ON t_stk_holdernumber (end_date);
+
+CREATE TABLE IF NOT EXISTS t_block_trade (
+  ts_code TEXT NOT NULL,
+  trade_date TEXT NOT NULL,
+  price REAL,
+  vol REAL,
+  amount REAL,
+  premium REAL,
+  PRIMARY KEY (ts_code, trade_date, price, vol)
+);
+CREATE INDEX IF NOT EXISTS idx_block_trade_date ON t_block_trade (trade_date);
+
+CREATE TABLE IF NOT EXISTS t_sniper_daily (
+  ts_code TEXT NOT NULL,
+  trade_date TEXT NOT NULL,
+  sniper_score INTEGER NOT NULL DEFAULT 0,
+  sniper_rejected INTEGER NOT NULL DEFAULT 0,
+  sniper_reject_reason TEXT,
+  s_holder_score INTEGER NOT NULL DEFAULT 0,
+  s_chip_vacuum_score INTEGER NOT NULL DEFAULT 0,
+  s_ma_state_score INTEGER NOT NULL DEFAULT 0,
+  s_safety_margin_score INTEGER NOT NULL DEFAULT 0,
+  s_macd_weekly_score INTEGER NOT NULL DEFAULT 0,
+  s_low_volume_score INTEGER NOT NULL DEFAULT 0,
+  s_golden_pit_score INTEGER NOT NULL DEFAULT 0,
+  s_ignition_score INTEGER NOT NULL DEFAULT 0,
+  s_top_list_score INTEGER NOT NULL DEFAULT 0,
+  s_news_score INTEGER NOT NULL DEFAULT 0,
+  s_base_total INTEGER NOT NULL DEFAULT 0,
+  s_dynamic_total INTEGER NOT NULL DEFAULT 0,
+  pct_chg REAL,
+  turnover_rate REAL,
+  volume_ratio REAL,
+  trend_reason TEXT,
+  PRIMARY KEY (ts_code, trade_date)
+);
+CREATE INDEX IF NOT EXISTS idx_sniper_trade_date ON t_sniper_daily (trade_date);
+CREATE INDEX IF NOT EXISTS idx_sniper_score ON t_sniper_daily (sniper_score);
+CREATE INDEX IF NOT EXISTS idx_sniper_trade_score_code ON t_sniper_daily (trade_date, sniper_score, ts_code);
+
+

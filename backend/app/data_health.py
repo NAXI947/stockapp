@@ -11,7 +11,7 @@ from backend.app.utils import row_get
 
 
 UPDATE_NOTES = {
-    "daily": "数据更新页：日更；依次运行 jobs/job_daily_common.py、jobs/job_daily_featured.py、jobs/job_daily_strategy.py --latest-only",
+    "daily": "数据更新页：全量日更；依次运行 jobs/job_daily_common.py、jobs/job_daily_featured.py、jobs/job_daily_strategy.py",
     "update_date": "数据更新页：按日期补更；依次运行指定日期的 daily_common、daily_featured、daily_strategy",
     "weekly": "数据更新页：全量周更；脚本 jobs/job_weekly.py",
     "monthly": "数据更新页：全量月更；脚本 jobs/job_monthly.py",
@@ -119,12 +119,35 @@ TABLE_SPECS: list[dict[str, Any]] = [
         "align_market_date": True,
         "updater": f"{UPDATE_NOTES['daily']}；全量重算也可用 {UPDATE_NOTES['yearly']}",
         "fields": [
-            "ts_code", "trade_date", "ma5", "ma20", "ma60", "upper_space", "vol_score",
+            "ts_code", "trade_date", "ma5", "ma10", "ma20", "ma60", "upper_space", "vol_score",
             "is_limit_up", "limit_up_20d", "bull_trend", "avg_price_support", "float_risk_7d",
             "final_score", "pct_chg", "turnover_rate", "volume_ratio", "winner_rate",
             "trend_baseline", "chip_vacuum", "kline_body", "liquidity_base", "safety_margin",
             "top_list_3d", "st_risk", "rejected", "reject_reason",
         ],
+    },
+    {
+        "table": "t_weekly_bar",
+        "label": "周行情",
+        "date_field": "trade_date",
+        "coverage": "per_stock_latest",
+        "updater": UPDATE_NOTES["weekly"],
+        "fields": ["ts_code", "trade_date", "open", "high", "low", "close", "vol", "amount", "pct_chg"],
+    },
+    {
+        "table": "t_stk_holdernumber",
+        "label": "股东户数",
+        "date_field": "end_date",
+        "coverage": "per_stock_latest",
+        "updater": UPDATE_NOTES["monthly"],
+        "fields": ["ts_code", "ann_date", "end_date", "holder_num"],
+    },
+    {
+        "table": "t_block_trade",
+        "label": "大宗交易",
+        "date_field": "trade_date",
+        "updater": UPDATE_NOTES["daily"],
+        "fields": ["ts_code", "trade_date", "price", "vol", "amount", "premium"],
     },
     {
         "table": "t_ambush_pool",

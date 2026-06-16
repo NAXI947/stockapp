@@ -60,14 +60,15 @@ from backend.core.deps import get_prepared_database
 router = APIRouter(prefix="/api/v1")
 
 
-
+router = APIRouter(prefix="/api/v1")
 
 
 @router.get("/picks", response_model=PicksResponse)
-def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depends(get_prepared_database)):
+def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bool = False, database=Depends(get_prepared_database)):
     target_date = date
     if not target_date:
-        latest = database.fetch_all("SELECT MAX(trade_date) AS trade_date FROM t_strategy_daily")
+        table_name = "t_sniper_daily" if is_sniper else "t_strategy_daily"
+        latest = database.fetch_all(f"SELECT MAX(trade_date) AS trade_date FROM {table_name}")
         if not latest or not latest[0]["trade_date"]:
             return PicksResponse(data=[])
         target_date = latest[0]["trade_date"]
@@ -81,12 +82,45 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depe
                    s.trend_baseline, s.chip_vacuum, s.kline_body, s.liquidity_base,
                    s.safety_margin, s.top_list_3d, s.st_risk, s.rejected, s.reject_reason,
                    a.expected_logic, a.add_date as ambush_add_date,
-                   (COALESCE(s.liquidity_base, 0) = 1 OR COALESCE(s.kline_body, 0) = 1) AS is_action_triggered
+                   (COALESCE(s.liquidity_base, 0) = 1 OR COALESCE(s.kline_body, 0) = 1) AS is_action_triggered,
+                   s.trend_reason,
+                   (s.final_score - COALESCE((
+                       SELECT prev.final_score 
+                       FROM t_strategy_daily prev 
+                       WHERE prev.ts_code = s.ts_code AND prev.trade_date < s.trade_date 
+                       ORDER BY prev.trade_date DESC LIMIT 1
+                   ), s.final_score)) AS score_change
             FROM t_ambush_pool a
             LEFT JOIN t_strategy_daily s ON s.ts_code = a.ts_code AND s.trade_date = %s
             LEFT JOIN t_stock_basic b ON b.ts_code = a.ts_code
             WHERE a.status = 1
             ORDER BY is_action_triggered DESC, s.chip_vacuum DESC, s.safety_margin DESC
+            """,
+            (target_date,),
+        )
+    elif is_sniper:
+        # 极简狙击手独立选股逻辑
+        rows = database.fetch_all(
+            """
+            SELECT s.ts_code, b.name, b.industry, s.pct_chg, s.turnover_rate,
+                   s.volume_ratio, s.sniper_score as final_score, s.sniper_score,
+                   s.sniper_rejected as rejected, s.sniper_rejected, s.sniper_reject_reason as reject_reason, s.sniper_reject_reason,
+                   s.s_holder_score, s.s_chip_vacuum_score, s.s_ma_state_score,
+                   s.s_safety_margin_score, s.s_macd_weekly_score, s.s_low_volume_score,
+                   s.s_golden_pit_score, s.s_ignition_score, s.s_top_list_score,
+                   s.s_news_score, s.s_base_total, s.s_dynamic_total,
+                   s.trend_reason,
+                   (s.sniper_score - COALESCE((
+                        SELECT prev.sniper_score 
+                        FROM t_sniper_daily prev 
+                        WHERE prev.ts_code = s.ts_code AND prev.trade_date < s.trade_date 
+                        ORDER BY prev.trade_date DESC LIMIT 1
+                    ), s.sniper_score)) AS score_change
+            FROM t_sniper_daily s
+            LEFT JOIN t_stock_basic b ON b.ts_code = s.ts_code
+            WHERE s.trade_date = %s
+            ORDER BY s.sniper_score DESC, s.ts_code ASC
+            LIMIT 10
             """,
             (target_date,),
         )
@@ -97,7 +131,14 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depe
             SELECT s.ts_code, b.name, b.industry, s.pct_chg, s.turnover_rate,
                    s.volume_ratio, s.winner_rate, s.upper_space, s.vol_score, s.final_score,
                    s.trend_baseline, s.chip_vacuum, s.kline_body, s.liquidity_base,
-                   s.safety_margin, s.top_list_3d, s.st_risk, s.rejected, s.reject_reason
+                   s.safety_margin, s.top_list_3d, s.st_risk, s.rejected, s.reject_reason,
+                   s.trend_reason,
+                   (s.final_score - COALESCE((
+                       SELECT prev.final_score 
+                       FROM t_strategy_daily prev 
+                       WHERE prev.ts_code = s.ts_code AND prev.trade_date < s.trade_date 
+                       ORDER BY prev.trade_date DESC LIMIT 1
+                   ), s.final_score)) AS score_change
             FROM t_strategy_daily s
             LEFT JOIN t_stock_basic b ON b.ts_code = s.ts_code
             WHERE s.trade_date = %s
@@ -107,11 +148,13 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depe
         )
     
     concept_map: dict[str, list[str]] = {}
+    score_trend_map: dict[str, list[int]] = {}
     if rows:
-        concept_sql = """
+        source_table = "t_sniper_daily" if is_sniper else "t_strategy_daily"
+        concept_sql = f"""
         SELECT DISTINCT c.ts_code, c.concept_name
         FROM t_concept_detail c
-        INNER JOIN t_strategy_daily s ON s.ts_code = c.ts_code
+        INNER JOIN {source_table} s ON s.ts_code = c.ts_code
         WHERE s.trade_date = %s
         ORDER BY c.concept_name ASC
         """
@@ -124,6 +167,27 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depe
             concept_list = concept_map.setdefault(ts_code, [])
             if concept_name not in concept_list:
                 concept_list.append(concept_name)
+
+        # 获取最近 7 个交易日的时间序列
+        dates_rows = database.fetch_all(
+            f"SELECT DISTINCT trade_date FROM {source_table} WHERE trade_date <= %s ORDER BY trade_date DESC LIMIT 7",
+            (target_date,),
+        )
+        last_7_dates = sorted([r["trade_date"] for r in dates_rows])
+        if last_7_dates:
+            history_placeholders = ", ".join(["%s"] * len(last_7_dates))
+            score_col = "sniper_score" if is_sniper else "final_score"
+            history_sql = f"""
+            SELECT ts_code, trade_date, {score_col} AS final_score
+            FROM {source_table}
+            WHERE trade_date IN ({history_placeholders})
+            """
+            history_rows = database.fetch_all(history_sql, tuple(last_7_dates))
+            history_rows_sorted = sorted(history_rows, key=lambda x: x["trade_date"])
+            for h_row in history_rows_sorted:
+                code = h_row["ts_code"]
+                score = to_int(h_row["final_score"])
+                score_trend_map.setdefault(code, []).append(score)
     
     items = [
         {
@@ -136,29 +200,49 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, database=Depe
             "pct_chg": to_float(row_get(row, "pct_chg")),
             "turnover_rate": to_float(row_get(row, "turnover_rate")),
             "volume_ratio": to_float(row_get(row, "volume_ratio")),
-            "winner_rate": to_float(row_get(row, "winner_rate")),
-            "upper_space": to_float(row_get(row, "upper_space")),
-            "vol_score": to_float(row_get(row, "vol_score")),
+            "winner_rate": to_float(row_get(row, "winner_rate")) if not is_sniper else None,
+            "upper_space": to_float(row_get(row, "upper_space")) if not is_sniper else None,
+            "vol_score": to_float(row_get(row, "vol_score")) if not is_sniper else None,
             "final_score": to_int(row_get(row, "final_score")),
             # v1.1 新增字段
-            "trend_baseline": to_int(row_get(row, "trend_baseline")),
-            "chip_vacuum": to_int(row_get(row, "chip_vacuum")),
-            "kline_body": to_int(row_get(row, "kline_body")),
-            "liquidity_base": to_int(row_get(row, "liquidity_base")),
-            "safety_margin": to_int(row_get(row, "safety_margin")),
-            "top_list_3d": to_int(row_get(row, "top_list_3d")),
-            "st_risk": to_int(row_get(row, "st_risk")),
+            "trend_baseline": to_int(row_get(row, "trend_baseline")) if not is_sniper else None,
+            "chip_vacuum": to_int(row_get(row, "chip_vacuum")) if not is_sniper else None,
+            "kline_body": to_int(row_get(row, "kline_body")) if not is_sniper else None,
+            "liquidity_base": to_int(row_get(row, "liquidity_base")) if not is_sniper else None,
+            "safety_margin": to_int(row_get(row, "safety_margin")) if not is_sniper else None,
+            "top_list_3d": to_int(row_get(row, "top_list_3d")) if not is_sniper else None,
+            "st_risk": to_int(row_get(row, "st_risk")) if not is_sniper else None,
             "rejected": to_int(row_get(row, "rejected")),
             "reject_reason": row_get(row, "reject_reason"),
             # v1.2 新增：埋伏池相关动态字段
             "is_action_triggered": bool(row_get(row, "is_action_triggered")) if is_ambush else False,
             "ambush_add_date": row_get(row, "ambush_add_date") if is_ambush else None,
             "expected_logic": row_get(row, "expected_logic") if is_ambush else None,
+            # v1.3 新增：狙击手归因与分数变化
+            "trend_reason": row_get(row, "trend_reason"),
+            "score_change": to_int(row_get(row, "score_change")),
+            # v1.4 新增：7天评分趋势
+            "score_trend": score_trend_map.get(row["ts_code"], [to_int(row_get(row, "final_score"))]) if row["ts_code"] in score_trend_map else [to_int(row_get(row, "final_score"))],
+            # Sniper fields
+            "sniper_score": to_int(row_get(row, "sniper_score")) if is_sniper else None,
+            "sniper_rejected": to_int(row_get(row, "sniper_rejected")) if is_sniper else None,
+            "sniper_reject_reason": row_get(row, "sniper_reject_reason") if is_sniper else None,
+            "s_holder_score": to_int(row_get(row, "s_holder_score")) if is_sniper else None,
+            "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")) if is_sniper else None,
+            "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")) if is_sniper else None,
+            "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")) if is_sniper else None,
+            "s_macd_weekly_score": to_int(row_get(row, "s_macd_weekly_score")) if is_sniper else None,
+            "s_low_volume_score": to_int(row_get(row, "s_low_volume_score")) if is_sniper else None,
+            "s_golden_pit_score": to_int(row_get(row, "s_golden_pit_score")) if is_sniper else None,
+            "s_ignition_score": to_int(row_get(row, "s_ignition_score")) if is_sniper else None,
+            "s_top_list_score": to_int(row_get(row, "s_top_list_score")) if is_sniper else None,
+            "s_news_score": to_int(row_get(row, "s_news_score")) if is_sniper else None,
+            "s_base_total": to_int(row_get(row, "s_base_total")) if is_sniper else None,
+            "s_dynamic_total": to_int(row_get(row, "s_dynamic_total")) if is_sniper else None,
         }
         for row in rows
     ]
     return PicksResponse(data=items)
-
 
 @router.get("/kline/{ts_code}", response_model=KlineResponse)
 def get_kline(ts_code: str, limit: int = 60, database=Depends(get_prepared_database)):
@@ -194,28 +278,44 @@ def get_kline(ts_code: str, limit: int = 60, database=Depends(get_prepared_datab
 
 
 @router.get("/detail/{ts_code}", response_model=DetailResponse)
-def get_detail(ts_code: str, date: Optional[str] = None, database=Depends(get_prepared_database)):
+def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False, database=Depends(get_prepared_database)):
     target_date = date
+    table_name = "t_sniper_daily" if is_sniper else "t_strategy_daily"
     if not target_date:
         latest = database.fetch_all(
-            "SELECT MAX(trade_date) AS trade_date FROM t_strategy_daily WHERE ts_code = %s",
+            f"SELECT MAX(trade_date) AS trade_date FROM {table_name} WHERE ts_code = %s",
             (ts_code,),
         )
         if not latest or not latest[0]["trade_date"]:
             raise HTTPException(status_code=404, detail="stock not found")
         target_date = latest[0]["trade_date"]
 
-    core_sql = """
-    SELECT c.cost_50, c.cost_85, c.winner_rate, s.float_risk_7d, s.limit_up_20d,
-           s.is_limit_up, s.bull_trend,
-           s.final_score, s.pct_chg, s.turnover_rate, s.volume_ratio, s.upper_space, s.vol_score,
-           s.trend_baseline, s.chip_vacuum, s.kline_body, s.liquidity_base,
-           s.safety_margin, s.top_list_3d, s.st_risk, s.rejected, s.reject_reason
-    FROM t_strategy_daily s
-    LEFT JOIN t_cyq_perf c
-      ON c.ts_code = s.ts_code AND c.trade_date = s.trade_date
-    WHERE s.ts_code = %s AND s.trade_date = %s
-    """
+    if is_sniper:
+        core_sql = """
+        SELECT c.cost_50, c.cost_85, c.winner_rate, 
+               s.sniper_score as final_score, s.pct_chg, s.turnover_rate, s.volume_ratio,
+               s.sniper_score, s.sniper_rejected as rejected, s.sniper_reject_reason as reject_reason,
+               s.s_holder_score, s.s_chip_vacuum_score, s.s_ma_state_score,
+               s.s_safety_margin_score, s.s_macd_weekly_score, s.s_low_volume_score,
+               s.s_golden_pit_score, s.s_ignition_score, s.s_top_list_score,
+               s.s_news_score, s.s_base_total, s.s_dynamic_total
+        FROM t_sniper_daily s
+        LEFT JOIN t_cyq_perf c
+          ON c.ts_code = s.ts_code AND c.trade_date = s.trade_date
+        WHERE s.ts_code = %s AND s.trade_date = %s
+        """
+    else:
+        core_sql = """
+        SELECT c.cost_50, c.cost_85, c.winner_rate, s.float_risk_7d, s.limit_up_20d,
+               s.is_limit_up, s.bull_trend,
+               s.final_score, s.pct_chg, s.turnover_rate, s.volume_ratio, s.upper_space, s.vol_score,
+               s.trend_baseline, s.chip_vacuum, s.kline_body, s.liquidity_base,
+               s.safety_margin, s.top_list_3d, s.st_risk, s.rejected, s.reject_reason
+        FROM t_strategy_daily s
+        LEFT JOIN t_cyq_perf c
+          ON c.ts_code = s.ts_code AND c.trade_date = s.trade_date
+        WHERE s.ts_code = %s AND s.trade_date = %s
+        """
     core_rows = database.fetch_all(core_sql, (ts_code, target_date))
     core = core_rows[0] if core_rows else {}
     
@@ -292,6 +392,67 @@ def get_detail(ts_code: str, date: Optional[str] = None, database=Depends(get_pr
             "roe": to_float(row_get(fin_row, "roe")),
         }
 
+    # 获取最近 7 天的详细评分历史
+    if is_sniper:
+        history_sql = """
+        SELECT trade_date, sniper_score as final_score, pct_chg, turnover_rate, volume_ratio,
+               s_holder_score, s_chip_vacuum_score, s_ma_state_score, s_safety_margin_score, s_macd_weekly_score,
+               s_low_volume_score, s_golden_pit_score, s_ignition_score, s_top_list_score, s_news_score,
+               s_base_total, s_dynamic_total, sniper_rejected as rejected, sniper_reject_reason as reject_reason
+        FROM t_sniper_daily
+        WHERE ts_code = %s AND trade_date <= %s
+        ORDER BY trade_date DESC
+        LIMIT 7
+        """
+    else:
+        history_sql = """
+        SELECT trade_date, final_score, pct_chg, turnover_rate, volume_ratio, winner_rate,
+               trend_baseline, chip_vacuum, kline_body, liquidity_base, safety_margin,
+               top_list_3d, float_risk_7d, is_limit_up, bull_trend, limit_up_20d
+        FROM t_strategy_daily
+        WHERE ts_code = %s AND trade_date <= %s
+        ORDER BY trade_date DESC
+        LIMIT 7
+        """
+    history_rows = database.fetch_all(history_sql, (ts_code, target_date))
+    history_7d = [
+        {
+            "trade_date": row["trade_date"],
+            "final_score": to_int(row_get(row, "final_score")),
+            "pct_chg": to_float(row_get(row, "pct_chg")),
+            "turnover_rate": to_float(row_get(row, "turnover_rate")),
+            "volume_ratio": to_float(row_get(row, "volume_ratio")),
+            "winner_rate": to_float(row_get(row, "winner_rate")) if not is_sniper else None,
+            "trend_baseline": to_int(row_get(row, "trend_baseline")) if not is_sniper else None,
+            "chip_vacuum": to_int(row_get(row, "chip_vacuum")) if not is_sniper else None,
+            "kline_body": to_int(row_get(row, "kline_body")) if not is_sniper else None,
+            "liquidity_base": to_int(row_get(row, "liquidity_base")) if not is_sniper else None,
+            "safety_margin": to_int(row_get(row, "safety_margin")) if not is_sniper else None,
+            "top_list_3d": to_int(row_get(row, "top_list_3d")) if not is_sniper else None,
+            "float_risk_7d": to_int(row_get(row, "float_risk_7d")) if not is_sniper else None,
+            "is_limit_up": to_int(row_get(row, "is_limit_up")) if not is_sniper else None,
+            "bull_trend": to_int(row_get(row, "bull_trend")) if not is_sniper else None,
+            "limit_up_20d": to_int(row_get(row, "limit_up_20d")) if not is_sniper else None,
+            # Sniper fields
+            "sniper_score": to_int(row_get(row, "final_score")) if is_sniper else None,
+            "sniper_rejected": to_int(row_get(row, "rejected")) if is_sniper else None,
+            "sniper_reject_reason": row_get(row, "reject_reason") if is_sniper else None,
+            "s_holder_score": to_int(row_get(row, "s_holder_score")) if is_sniper else None,
+            "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")) if is_sniper else None,
+            "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")) if is_sniper else None,
+            "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")) if is_sniper else None,
+            "s_macd_weekly_score": to_int(row_get(row, "s_macd_weekly_score")) if is_sniper else None,
+            "s_low_volume_score": to_int(row_get(row, "s_low_volume_score")) if is_sniper else None,
+            "s_golden_pit_score": to_int(row_get(row, "s_golden_pit_score")) if is_sniper else None,
+            "s_ignition_score": to_int(row_get(row, "s_ignition_score")) if is_sniper else None,
+            "s_top_list_score": to_int(row_get(row, "s_top_list_score")) if is_sniper else None,
+            "s_news_score": to_int(row_get(row, "s_news_score")) if is_sniper else None,
+            "s_base_total": to_int(row_get(row, "s_base_total")) if is_sniper else None,
+            "s_dynamic_total": to_int(row_get(row, "s_dynamic_total")) if is_sniper else None,
+        }
+        for row in reversed(history_rows)
+    ]
+
     return DetailResponse(
         data=DetailPayload(
             ts_code=ts_code,
@@ -303,23 +464,23 @@ def get_detail(ts_code: str, date: Optional[str] = None, database=Depends(get_pr
             cost_50=to_float(core.get("cost_50")),
             cost_85=to_float(core.get("cost_85")),
             winner_rate=to_float(core.get("winner_rate")),
-            float_risk_7d=to_int(core.get("float_risk_7d")),
-            limit_up_20d=to_int(core.get("limit_up_20d")),
-            is_limit_up=to_int(core.get("is_limit_up")),
-            bull_trend=to_int(core.get("bull_trend")),
+            float_risk_7d=to_int(core.get("float_risk_7d")) if not is_sniper else None,
+            limit_up_20d=to_int(core.get("limit_up_20d")) if not is_sniper else None,
+            is_limit_up=to_int(core.get("is_limit_up")) if not is_sniper else None,
+            bull_trend=to_int(core.get("bull_trend")) if not is_sniper else None,
             final_score=to_int(core.get("final_score")),
             pct_chg=to_float(core.get("pct_chg")),
             turnover_rate=to_float(core.get("turnover_rate")),
             volume_ratio=to_float(core.get("volume_ratio")),
-            upper_space=to_float(core.get("upper_space")),
-            vol_score=to_float(core.get("vol_score")),
-            trend_baseline=to_int(core.get("trend_baseline")),
-            chip_vacuum=to_int(core.get("chip_vacuum")),
-            kline_body=to_int(core.get("kline_body")),
-            liquidity_base=to_int(core.get("liquidity_base")),
-            safety_margin=to_int(core.get("safety_margin")),
-            top_list_3d=to_int(core.get("top_list_3d")),
-            st_risk=to_int(core.get("st_risk")),
+            upper_space=to_float(core.get("upper_space")) if not is_sniper else None,
+            vol_score=to_float(core.get("vol_score")) if not is_sniper else None,
+            trend_baseline=to_int(core.get("trend_baseline")) if not is_sniper else None,
+            chip_vacuum=to_int(core.get("chip_vacuum")) if not is_sniper else None,
+            kline_body=to_int(core.get("kline_body")) if not is_sniper else None,
+            liquidity_base=to_int(core.get("liquidity_base")) if not is_sniper else None,
+            safety_margin=to_int(core.get("safety_margin")) if not is_sniper else None,
+            top_list_3d=to_int(core.get("top_list_3d")) if not is_sniper else None,
+            st_risk=to_int(core.get("st_risk")) if not is_sniper else None,
             rejected=to_int(core.get("rejected")),
             reject_reason=row_get(core, "reject_reason"),
             top_list=[
@@ -335,8 +496,26 @@ def get_detail(ts_code: str, date: Optional[str] = None, database=Depends(get_pr
             ],
             upcoming_float=upcoming_float,
             fin_indicator=fin_payload,
+            history_7d=history_7d,
+            # Sniper fields
+            sniper_score=to_int(core.get("sniper_score")) if is_sniper else None,
+            sniper_rejected=to_int(core.get("sniper_rejected")) if is_sniper else None,
+            sniper_reject_reason=row_get(core, "sniper_reject_reason") if is_sniper else None,
+            s_holder_score=to_int(core.get("s_holder_score")) if is_sniper else None,
+            s_chip_vacuum_score=to_int(core.get("s_chip_vacuum_score")) if is_sniper else None,
+            s_ma_state_score=to_int(core.get("s_ma_state_score")) if is_sniper else None,
+            s_safety_margin_score=to_int(core.get("s_safety_margin_score")) if is_sniper else None,
+            s_macd_weekly_score=to_int(core.get("s_macd_weekly_score")) if is_sniper else None,
+            s_low_volume_score=to_int(core.get("s_low_volume_score")) if is_sniper else None,
+            s_golden_pit_score=to_int(core.get("s_golden_pit_score")) if is_sniper else None,
+            s_ignition_score=to_int(core.get("s_ignition_score")) if is_sniper else None,
+            s_top_list_score=to_int(core.get("s_top_list_score")) if is_sniper else None,
+            s_news_score=to_int(core.get("s_news_score")) if is_sniper else None,
+            s_base_total=to_int(core.get("s_base_total")) if is_sniper else None,
+            s_dynamic_total=to_int(core.get("s_dynamic_total")) if is_sniper else None,
         )
     )
+
 
 
 @router.post("/stocks/batch-search", response_model=BatchSearchResponse)

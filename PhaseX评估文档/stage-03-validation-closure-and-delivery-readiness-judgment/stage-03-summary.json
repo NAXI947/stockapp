@@ -1,0 +1,857 @@
+{
+  "artifacts": {
+    "boundary_md": "stage-03-validation-closure-and-delivery-readiness-judgment\\downstream-boundary-note.md",
+    "closure_md": "stage-03-validation-closure-and-delivery-readiness-judgment\\test-closure-judgment.md",
+    "remediation_packet_json": "stage-03-validation-closure-and-delivery-readiness-judgment\\remediation-packet.json",
+    "remediation_packet_md": "stage-03-validation-closure-and-delivery-readiness-judgment\\remediation-packet.md"
+  },
+  "blocking_count": 60,
+  "claim_ceiling_report": {
+    "artifact_kind": "phase4-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "testing-validation-return-required",
+    "inputs": {
+      "blocking_count": 60,
+      "closure_decision": "return",
+      "review_bound_count": 0,
+      "signoff_not_ready_count": 0,
+      "signoff_pending_count": 0,
+      "upstream_claim_ceiling_state": "implementation-in-progress"
+    },
+    "policy": "Phase-4 may confirm or lower upstream ceilings; it must not upgrade review-bound or unknown evidence.",
+    "reasons": [
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-3 claim ceiling is `implementation-in-progress` and cannot be upgraded by Phase-4.",
+        "reason": "upstream_claim_ceiling_blocks_ready",
+        "signal": "phase3_claim_ceiling"
+      },
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-4 closure contains blocking or return-required evidence.",
+        "reason": "phase4_closure_return_required",
+        "signal": "phase4_closure"
+      }
+    ],
+    "requested_formal_state": "testing-validation-return-required",
+    "resolved_formal_state": "testing-validation-return-required",
+    "upstream_claim_ceiling_report": {
+      "artifact_kind": "phase3-claim-ceiling-report.v1",
+      "blocking_delivery_ready": true,
+      "claim_ceiling": "implementation-in-progress",
+      "inputs": {
+        "anti_cheat_negative_test_count": 7,
+        "artifact_quality_state": "pass",
+        "empty_or_audit_shaped_service_count": 0,
+        "failure_count": 6,
+        "implementation_depth_state": "unknown",
+        "same_source_test_risk_count": 0,
+        "trace_quality": {
+          "abuse_count": 0,
+          "blocking_gap_count": 30,
+          "chain_coverage_state": "unresolved",
+          "confirmed_count": 0,
+          "review_count": 0,
+          "suggested_count": 0,
+          "trace_db_indexed": false,
+          "trace_db_present": false,
+          "trace_db_projection_status": "no-confirmed-rows",
+          "trace_registry_present": true,
+          "unresolved_count": 30
+        },
+        "warning_count": 7
+      },
+      "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+      "present": true,
+      "reasons": [
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+          "reason": "implementation_depth_unknown",
+          "signal": "implementation_depth_state"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+          "reason": "trace_unresolved",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-ready",
+          "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+          "reason": "trace_identity_source_missing",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+          "reason": "code_review_blocking_findings",
+          "signal": "code_review"
+        }
+      ],
+      "requested_formal_state": "implementation-in-progress",
+      "resolved_formal_state": "implementation-in-progress",
+      "source": "phase3-delivery-gate.json"
+    }
+  },
+  "closure_decision": "return",
+  "closure_rationale": "Phase-3 claim ceiling is `implementation-in-progress`; Phase-4 cannot promote capped upstream evidence to testing-validation-complete.",
+  "functional_pass": false,
+  "generated_at": "2026-06-15T09:54:25.402231+00:00",
+  "output_dir": "D:\\python\\stockapp\\PhaseX评估文档\\stage-03-validation-closure-and-delivery-readiness-judgment",
+  "phase3_full_targeted_evidence_present": false,
+  "phase3_full_targeted_evidence_status": "missing",
+  "phase3_mainline_backend_verification_present": false,
+  "phase3_mainline_summary_present": true,
+  "phase3_mainline_total_score": 38.0,
+  "phase3_mainline_verdict": "RETURN-REMEDIATE",
+  "phase3_root": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+  "recommended_formal_state": "testing-validation-return-required",
+  "remediation": {
+    "affected_item_count": 60,
+    "affected_items": [
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-01"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-02"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-03"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-04"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-05"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-06"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-07"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-08"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-09"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-10"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-11"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-12"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-13"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-14"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-15"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-CTR-16"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-RP-01"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-RP-02"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-RP-03"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-P2-SEC-AUTH-LIFECYCLE"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-01"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-02"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-03"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-04"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-05"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-06"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-07"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-08"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-09"
+      },
+      {
+        "acceptance_type": "data-fidelity",
+        "actual_result": "Phase-3 backend service-boundary truth is not green.",
+        "evidence_path": [
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json",
+          "phase3-delivery-gate.json",
+          "code-review-metrics.json",
+          "mock-dependency-manifest.json"
+        ],
+        "status": "blocked",
+        "test_id": "TEST-DF-SCN-SCENARIO-10"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-01"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/2 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-02"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/2 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-03"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/2 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-04"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-05"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-06"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-07"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-08"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-09"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/2 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-10"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-11"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-12"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-13"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-14"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/2 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-15"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-CTR-16"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-RP-01"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-RP-02"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-RP-03"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-P2-SEC-AUTH-LIFECYCLE"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-01"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-02"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-03"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-04"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-05"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-06"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-07"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-08"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-09"
+      },
+      {
+        "acceptance_type": "functional",
+        "actual_result": "0/1 linked tests passed; at least one linked target has no recorded evidence.",
+        "evidence_path": [],
+        "status": "blocked",
+        "test_id": "TEST-SCN-SCENARIO-10"
+      }
+    ],
+    "closure_decision": "return",
+    "closure_rationale": "Phase-3 claim ceiling is `implementation-in-progress`; Phase-4 cannot promote capped upstream evidence to testing-validation-complete.",
+    "downstream_validation_required": [
+      "phase3",
+      "phase4"
+    ],
+    "evidence_refs": [
+      "phase3-delivery-gate.json",
+      "code-review-metrics.json",
+      "mock-dependency-manifest.json",
+      "stage-01-acceptance-coverage-planning/acceptance-catalog.json",
+      "stage-01-acceptance-coverage-planning/decision-coverage-alignment.json",
+      "stage-02-evidence-execution-and-defect-identification/test-execution-results.json",
+      "RETURN-REMEDIATE"
+    ],
+    "generated_at": "2026-06-15T09:54:25.401294+00:00",
+    "minimum_rerun_from": "phase3",
+    "phase2_root": "",
+    "phase3_root": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+    "reason_class": "missing-phase3-evidence",
+    "required_action": "Mandatory functional/data-fidelity acceptance could not find enough Phase-3 execution evidence.",
+    "return_target": "P3",
+    "suggested_commands": [
+      "rerun P3 with the implementation-delivery profile/source tree --phase2-root <phase2-root> --output-dir D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase3-rerun --version <next-version-p3> --output-locale zh-CN --full-targeted-evidence",
+      "python3 scripts/phase4/run_phase4_first_version.py --phase3-root D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase3-rerun --output-dir D:\\python\\stockapp\\phase4-rerun --version <next-version-p4> --output-locale zh-CN"
+    ]
+  },
+  "review_bound_count": 0,
+  "signoff_not_ready_count": 0,
+  "signoff_pending_count": 0,
+  "stage": "validation-closure-and-delivery-readiness-judgment",
+  "stage01_decision_alignment_complete": false,
+  "stage01_high_priority_unmapped_count": 0,
+  "stage01_trace_mapping_complete": true,
+  "title": "Phase-4 First Version",
+  "upstream_case_context": {
+    "architecture_decisions": [],
+    "operation_ids": [
+      "RecordAuditEvent",
+      "ListAuditRecords",
+      "UpdateAuditRecordStatus",
+      "ListCrossModuleSummaries",
+      "ListNoCoreBusinessObjectsExtractedFromSourceBriefRevisions",
+      "UpdateNoCoreBusinessObjectsExtractedFromSourceBriefRevisionStatus",
+      "ListNoCoreBusinessObjectsExtractedFromSourceBrief",
+      "ListNoCoreBusinessObjectsExtractedFromSourceBriefs"
+    ],
+    "phase2_root": "",
+    "phase3_total_score": "38.0",
+    "phase3_verdict": "RETURN-REMEDIATE",
+    "tradeoff_signals": []
+  },
+  "upstream_claim_ceiling_blocks_ready": true,
+  "upstream_claim_ceiling_report": {
+    "artifact_kind": "phase3-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "implementation-in-progress",
+    "inputs": {
+      "anti_cheat_negative_test_count": 7,
+      "artifact_quality_state": "pass",
+      "empty_or_audit_shaped_service_count": 0,
+      "failure_count": 6,
+      "implementation_depth_state": "unknown",
+      "same_source_test_risk_count": 0,
+      "trace_quality": {
+        "abuse_count": 0,
+        "blocking_gap_count": 30,
+        "chain_coverage_state": "unresolved",
+        "confirmed_count": 0,
+        "review_count": 0,
+        "suggested_count": 0,
+        "trace_db_indexed": false,
+        "trace_db_present": false,
+        "trace_db_projection_status": "no-confirmed-rows",
+        "trace_registry_present": true,
+        "unresolved_count": 30
+      },
+      "warning_count": 7
+    },
+    "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+    "present": true,
+    "reasons": [
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+        "reason": "implementation_depth_unknown",
+        "signal": "implementation_depth_state"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+        "reason": "trace_unresolved",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-ready",
+        "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+        "reason": "trace_identity_source_missing",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+        "reason": "code_review_blocking_findings",
+        "signal": "code_review"
+      }
+    ],
+    "requested_formal_state": "implementation-in-progress",
+    "resolved_formal_state": "implementation-in-progress",
+    "source": "phase3-delivery-gate.json"
+  },
+  "upstream_claim_ceiling_resolved_formal_state": "implementation-in-progress",
+  "version": "v1.3"
+}

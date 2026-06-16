@@ -225,6 +225,8 @@ export const picksApi = {
   },
   
   // 清理选股缓存
+  
+  // 清理选股缓存
   clearCache() {
     cacheUtils.clearUrl('/picks')
   }
@@ -237,8 +239,10 @@ export const stockApi = {
   },
   
   // 获取个股详情
-  getDetail(tsCode, date, options = {}) {
-    const params = date ? { date } : {}
+  getDetail(tsCode, dateOrParams = {}, options = {}) {
+    const params = typeof dateOrParams === 'string'
+      ? { date: dateOrParams }
+      : { ...dateOrParams }
     return api.get(`/detail/${tsCode}`, { params, ...options })
   },
   

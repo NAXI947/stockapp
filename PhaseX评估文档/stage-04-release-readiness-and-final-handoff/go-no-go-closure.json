@@ -1,0 +1,48 @@
+{
+  "blocking_reasons": [
+    "stage03-return"
+  ],
+  "conditions": [],
+  "generated_at": "2026-06-15T09:54:25.631824+00:00",
+  "phase4_delivery_gate": "phase4-delivery-gate.json",
+  "phase4_output_contract_report": ".phase4-contract\\phase4-output-contract-report.json",
+  "release_readiness_decision": "no-go",
+  "release_signoffs": {
+    "manifest_present": false,
+    "pending_roles": [
+      "engineering",
+      "product",
+      "operations"
+    ],
+    "release_signoffs_complete": false,
+    "required_roles": [
+      "engineering",
+      "product",
+      "operations"
+    ],
+    "required_rows": [
+      {
+        "evidence": "",
+        "role": "engineering",
+        "signer": "",
+        "status": "pending"
+      },
+      {
+        "evidence": "",
+        "role": "product",
+        "signer": "",
+        "status": "pending"
+      },
+      {
+        "evidence": "",
+        "role": "operations",
+        "signer": "",
+        "status": "pending"
+      }
+    ]
+  },
+  "residual_risks": [],
+  "source_closure_decision": "return",
+  "stage03_summary": "stage-03-validation-closure-and-delivery-readiness-judgment\\stage-03-summary.json",
+  "warnings": []
+}

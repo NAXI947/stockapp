@@ -1,0 +1,108 @@
+{
+  "acceptance_item_count": 60,
+  "artifacts": {
+    "acceptance_catalog_json": "stage-01-acceptance-coverage-planning\\acceptance-catalog.json",
+    "acceptance_checklist_md": "stage-01-acceptance-coverage-planning\\acceptance-checklist.md",
+    "contract_registry_json": "stage-01-acceptance-coverage-planning\\contract-registry.json",
+    "contract_registry_md": "stage-01-acceptance-coverage-planning\\contract-registry.md",
+    "coverage_md": "stage-01-acceptance-coverage-planning\\test-coverage-explanation.md",
+    "decision_alignment_json": "stage-01-acceptance-coverage-planning\\decision-coverage-alignment.json",
+    "decision_alignment_md": "stage-01-acceptance-coverage-planning\\decision-coverage-alignment.md",
+    "execution_control_md": "stage-01-acceptance-coverage-planning\\test-execution-control.md",
+    "gate_md": "stage-01-acceptance-coverage-planning\\test-entry-exit-gate-checklist.md",
+    "planning_package": "stage-01-acceptance-coverage-planning\\testing-validation-planning-package.md",
+    "runtime_environment_readiness_json": "stage-01-acceptance-coverage-planning\\runtime-environment-readiness.json"
+  },
+  "critical_path_count": 24,
+  "data_fidelity_count": 30,
+  "decision_alignment_complete": false,
+  "decision_count": 0,
+  "functional_api_mapped_count": 29,
+  "functional_api_mapping_complete": true,
+  "functional_api_optional_count": 1,
+  "functional_count": 30,
+  "functional_req_mapping_complete": true,
+  "generated_at": "2026-06-15T09:54:25.352104+00:00",
+  "high_priority_unmapped_count": 0,
+  "human_signoff_required_count": 0,
+  "mapped_decision_count": 0,
+  "output_dir": "D:\\python\\stockapp\\PhaseX评估文档\\stage-01-acceptance-coverage-planning",
+  "phase2_root": "",
+  "phase3_claim_ceiling_blocks_ready": true,
+  "phase3_claim_ceiling_report": {
+    "artifact_kind": "phase3-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "implementation-in-progress",
+    "inputs": {
+      "anti_cheat_negative_test_count": 7,
+      "artifact_quality_state": "pass",
+      "empty_or_audit_shaped_service_count": 0,
+      "failure_count": 6,
+      "implementation_depth_state": "unknown",
+      "same_source_test_risk_count": 0,
+      "trace_quality": {
+        "abuse_count": 0,
+        "blocking_gap_count": 30,
+        "chain_coverage_state": "unresolved",
+        "confirmed_count": 0,
+        "review_count": 0,
+        "suggested_count": 0,
+        "trace_db_indexed": false,
+        "trace_db_present": false,
+        "trace_db_projection_status": "no-confirmed-rows",
+        "trace_registry_present": true,
+        "unresolved_count": 30
+      },
+      "warning_count": 7
+    },
+    "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+    "present": true,
+    "reasons": [
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+        "reason": "implementation_depth_unknown",
+        "signal": "implementation_depth_state"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+        "reason": "trace_unresolved",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-ready",
+        "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+        "reason": "trace_identity_source_missing",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+        "reason": "code_review_blocking_findings",
+        "signal": "code_review"
+      }
+    ],
+    "requested_formal_state": "implementation-in-progress",
+    "resolved_formal_state": "implementation-in-progress",
+    "source": "phase3-delivery-gate.json"
+  },
+  "phase3_claim_ceiling_resolved_formal_state": "implementation-in-progress",
+  "phase3_delivery_state": "implementation-in-progress",
+  "phase3_mainline_summary_present": true,
+  "phase3_mainline_total_score": 38.0,
+  "phase3_mainline_verdict": "RETURN-REMEDIATE",
+  "phase3_root": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+  "runtime_environment_ledger_present": false,
+  "runtime_environment_missing_lanes": [],
+  "runtime_environment_missing_packet_count": 0,
+  "stage": "acceptance-coverage-planning",
+  "stage02_may_start": true,
+  "title": "Phase-4 First Version",
+  "trace_mapping_complete": true,
+  "ui_review_count": 0,
+  "version": "v1.3",
+  "visual_assets_present": false,
+  "visual_capture_review_bound": true,
+  "visual_evidence_count": 0
+}

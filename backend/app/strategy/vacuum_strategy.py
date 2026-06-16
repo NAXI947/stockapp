@@ -15,7 +15,7 @@ class VacuumStrategy(StockStrategy):
     @property
     def expected_fields(self) -> List[str]:
         return [
-            'ma5', 'ma20', 'ma60', 'upper_space', 'vol_score',
+            'ma5', 'ma10', 'ma20', 'ma60', 'upper_space', 'vol_score',
             'is_limit_up', 'limit_up_20d', 'bull_trend',
             'final_score',
             'trend_baseline', 'chip_vacuum', 'kline_body', 
@@ -168,6 +168,7 @@ class VacuumStrategy(StockStrategy):
         close = self._get_float(row, 'close')
         
         ma5 = self._compute_adjusted_ma(series, target_index, 5)
+        ma10 = self._compute_adjusted_ma(series, target_index, 10)
         ma20 = self._compute_adjusted_ma(series, target_index, 20)
         ma60 = self._compute_adjusted_ma(series, target_index, 60)
         upper_space = self._compute_upper_space(series, target_index)
@@ -177,7 +178,7 @@ class VacuumStrategy(StockStrategy):
         st_risk = self._check_st_risk(stock_name)
         if st_risk:
             return StrategyResult(score=0, extra_fields={
-                'final_score': 0, 'ma5': ma5, 'ma20': ma20, 'ma60': ma60,
+                'final_score': 0, 'ma5': ma5, 'ma10': ma10, 'ma20': ma20, 'ma60': ma60,
                 'upper_space': upper_space, 'vol_score': vol_score,
                 'is_limit_up': 0, 'limit_up_20d': 0, 'bull_trend': 0,
                 'winner_rate': 0, 'top_list_3d': 0,
@@ -188,7 +189,7 @@ class VacuumStrategy(StockStrategy):
             
         if len(series) < 60:
             return StrategyResult(score=0, extra_fields={
-                'final_score': 0, 'ma5': ma5, 'ma20': ma20, 'ma60': ma60,
+                'final_score': 0, 'ma5': ma5, 'ma10': ma10, 'ma20': ma20, 'ma60': ma60,
                 'upper_space': upper_space, 'vol_score': vol_score,
                 'is_limit_up': 0, 'limit_up_20d': 0, 'bull_trend': 0,
                 'winner_rate': 0, 'top_list_3d': 0,
@@ -301,7 +302,7 @@ class VacuumStrategy(StockStrategy):
         return StrategyResult(
             score=final_score, 
             extra_fields={
-                'final_score': final_score, 'ma5': ma5, 'ma20': ma20, 'ma60': ma60,
+                'final_score': final_score, 'ma5': ma5, 'ma10': ma10, 'ma20': ma20, 'ma60': ma60,
                 'upper_space': upper_space, 'vol_score': vol_score,
                 'is_limit_up': is_limit_up, 'limit_up_20d': limit_up_20d, 
                 'bull_trend': bull_trend,

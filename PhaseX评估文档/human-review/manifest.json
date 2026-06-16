@@ -1,0 +1,321 @@
+{
+  "artifacts": [
+    {
+      "canonical_path": "stage-03-validation-closure-and-delivery-readiness-judgment/test-closure-judgment.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/stage-03-validation-closure-and-delivery-readiness-judgment/test-closure-judgment.md",
+      "label": "Validation closure judgment",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-03-validation-closure-and-delivery-readiness-judgment/test-closure-judgment.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "stage-03-validation-closure-and-delivery-readiness-judgment/downstream-boundary-note.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/stage-03-validation-closure-and-delivery-readiness-judgment/downstream-boundary-note.md",
+      "label": "Downstream boundary note",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-03-validation-closure-and-delivery-readiness-judgment/downstream-boundary-note.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "stage-01-acceptance-coverage-planning/testing-validation-planning-package.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/stage-01-acceptance-coverage-planning/testing-validation-planning-package.md",
+      "label": "Testing-validation planning package",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-01-acceptance-coverage-planning/testing-validation-planning-package.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "stage-02-evidence-execution-and-defect-identification/test-execution-evidence.md",
+      "category": "primary",
+      "category_label": "primary review read",
+      "human_review_path": "human-review/artifacts/primary/stage-02-evidence-execution-and-defect-identification/test-execution-evidence.md",
+      "label": "Test execution evidence",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-02-evidence-execution-and-defect-identification/test-execution-evidence.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "phase4-delivery-gate.json",
+      "category": "gate",
+      "category_label": "gate / verdict",
+      "human_review_path": "human-review/artifacts/gate/phase4-delivery-gate.json",
+      "label": "Phase-4 delivery gate",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "phase4-delivery-gate.json",
+      "source_kind": "canonical-evidence"
+    },
+    {
+      "canonical_path": "phase-mainline-scorecard.md",
+      "category": "gate",
+      "category_label": "gate / verdict",
+      "human_review_path": "human-review/artifacts/gate/phase-mainline-scorecard.md",
+      "label": "Phase mainline scorecard",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "phase-mainline-scorecard.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "phase-acceptance-matrix.md",
+      "category": "gate",
+      "category_label": "gate / verdict",
+      "human_review_path": "human-review/artifacts/gate/phase-acceptance-matrix.md",
+      "label": "Phase acceptance matrix",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "phase-acceptance-matrix.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "phase-verdict.json",
+      "category": "gate",
+      "category_label": "gate / verdict",
+      "human_review_path": "human-review/artifacts/gate/phase-verdict.json",
+      "label": "Phase verdict",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "phase-verdict.json",
+      "source_kind": "canonical-evidence"
+    },
+    {
+      "canonical_path": ".phase4-review/phase4-output-contract-report.md",
+      "category": "review",
+      "category_label": "review / trace support",
+      "human_review_path": "human-review/artifacts/review/.phase4-review/phase4-output-contract-report.md",
+      "label": "Output contract report",
+      "note": "",
+      "optional": true,
+      "selected_source_path": ".phase4-review/phase4-output-contract-report.md",
+      "source_kind": "canonical-fallback"
+    },
+    {
+      "canonical_path": "stage-02-evidence-execution-and-defect-identification/review-bound-record.json",
+      "category": "review",
+      "category_label": "review / trace support",
+      "human_review_path": "human-review/artifacts/review/stage-02-evidence-execution-and-defect-identification/review-bound-record.json",
+      "label": "Review-bound record",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-02-evidence-execution-and-defect-identification/review-bound-record.json",
+      "source_kind": "canonical-evidence"
+    },
+    {
+      "canonical_path": "stage-02-evidence-execution-and-defect-identification/defect-record.json",
+      "category": "review",
+      "category_label": "review / trace support",
+      "human_review_path": "human-review/artifacts/review/stage-02-evidence-execution-and-defect-identification/defect-record.json",
+      "label": "Defect record",
+      "note": "",
+      "optional": true,
+      "selected_source_path": "stage-02-evidence-execution-and-defect-identification/defect-record.json",
+      "source_kind": "canonical-evidence"
+    }
+  ],
+  "canonical_authority_note": "review artifacts are copies for reading; canonical source artifacts remain at their original paths",
+  "claim_ceiling_blocks_ready": true,
+  "claim_ceiling_notes": [
+    "P4 judges evidence sufficiency and routing under a claim ceiling; it is not production approval.",
+    "Missing external owner / UAT / production evidence must remain explicit instead of being inferred from green gates.",
+    "P4 may not upgrade a capped P3 claim ceiling; review-bound closure is not release-ready PASS."
+  ],
+  "claim_ceiling_report": {
+    "artifact_kind": "phase4-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "testing-validation-return-required",
+    "inputs": {
+      "blocking_count": 60,
+      "closure_decision": "return",
+      "review_bound_count": 0,
+      "signoff_not_ready_count": 0,
+      "signoff_pending_count": 0,
+      "upstream_claim_ceiling_state": "implementation-in-progress"
+    },
+    "policy": "Phase-4 may confirm or lower upstream ceilings; it must not upgrade review-bound or unknown evidence.",
+    "present": true,
+    "reasons": [
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-3 claim ceiling is `implementation-in-progress` and cannot be upgraded by Phase-4.",
+        "reason": "upstream_claim_ceiling_blocks_ready",
+        "signal": "phase3_claim_ceiling"
+      },
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-4 closure contains blocking or return-required evidence.",
+        "reason": "phase4_closure_return_required",
+        "signal": "phase4_closure"
+      }
+    ],
+    "requested_formal_state": "testing-validation-return-required",
+    "resolved_formal_state": "testing-validation-return-required",
+    "source": "phase4-delivery-gate.json",
+    "upstream_claim_ceiling_report": {
+      "artifact_kind": "phase3-claim-ceiling-report.v1",
+      "blocking_delivery_ready": true,
+      "claim_ceiling": "implementation-in-progress",
+      "inputs": {
+        "anti_cheat_negative_test_count": 7,
+        "artifact_quality_state": "pass",
+        "empty_or_audit_shaped_service_count": 0,
+        "failure_count": 6,
+        "implementation_depth_state": "unknown",
+        "same_source_test_risk_count": 0,
+        "trace_quality": {
+          "abuse_count": 0,
+          "blocking_gap_count": 30,
+          "chain_coverage_state": "unresolved",
+          "confirmed_count": 0,
+          "review_count": 0,
+          "suggested_count": 0,
+          "trace_db_indexed": false,
+          "trace_db_present": false,
+          "trace_db_projection_status": "no-confirmed-rows",
+          "trace_registry_present": true,
+          "unresolved_count": 30
+        },
+        "warning_count": 7
+      },
+      "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+      "present": true,
+      "reasons": [
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+          "reason": "implementation_depth_unknown",
+          "signal": "implementation_depth_state"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+          "reason": "trace_unresolved",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-ready",
+          "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+          "reason": "trace_identity_source_missing",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+          "reason": "code_review_blocking_findings",
+          "signal": "code_review"
+        }
+      ],
+      "requested_formal_state": "implementation-in-progress",
+      "resolved_formal_state": "implementation-in-progress",
+      "source": "phase3-delivery-gate.json"
+    }
+  },
+  "generated_at": "2026-06-15T09:54:25+00:00",
+  "machine_working_areas": [
+    {
+      "exists": true,
+      "meaning": "AI / gate working evidence; inspect when a primary artifact points here or a defect requires detail.",
+      "path": ".phase4-contract"
+    },
+    {
+      "exists": true,
+      "meaning": "AI / gate working evidence; inspect when a primary artifact points here or a defect requires detail.",
+      "path": ".phase4-review"
+    },
+    {
+      "exists": true,
+      "meaning": "AI / gate working evidence; inspect when a primary artifact points here or a defect requires detail.",
+      "path": "stage-01-acceptance-coverage-planning"
+    },
+    {
+      "exists": true,
+      "meaning": "AI / gate working evidence; inspect when a primary artifact points here or a defect requires detail.",
+      "path": "stage-02-evidence-execution-and-defect-identification"
+    },
+    {
+      "exists": true,
+      "meaning": "AI / gate working evidence; inspect when a primary artifact points here or a defect requires detail.",
+      "path": "stage-03-validation-closure-and-delivery-readiness-judgment"
+    }
+  ],
+  "missing_artifacts": [],
+  "phase": "phase4",
+  "primary_instruction": "Start with upstream/P4 claim ceilings and residual review-bound records before reading closure scores or downstream boundary notes.",
+  "red_team_findings_record": {
+    "authority": "AI/external red-team review must record findings before reading or relying on scores/final verdicts",
+    "path": "human-review/RED_TEAM_FINDINGS.md",
+    "required_before_scorecards": true,
+    "review_path": "human-review/RED_TEAM_FINDINGS.md",
+    "status": "template-generated"
+  },
+  "red_team_findings_status": {
+    "anchored_evidence_checks": [],
+    "claim_ceiling_after_review": "unfilled",
+    "claim_ceiling_after_review_blocks_ready": false,
+    "claim_ceiling_after_review_state": "",
+    "exists": true,
+    "human_review_blocks_ready": true,
+    "path": "human-review/RED_TEAM_FINDINGS.md",
+    "reasons": [
+      "evidence inspected is empty",
+      "missing evidence for Claim Ceiling Consumption",
+      "missing evidence for Residual Review-Bound Items",
+      "missing evidence for Trace Causality Sample",
+      "missing evidence for Upstream P3 Ceiling",
+      "unfilled final review field: claim_ceiling_after_review",
+      "unfilled final review field: decision",
+      "unfilled final review field: return_or_followup_required",
+      "unfilled final review field: same_source_test_risk",
+      "unfilled review field"
+    ],
+    "required_review_checks": [
+      "Upstream P3 Ceiling",
+      "Residual Review-Bound Items",
+      "Claim Ceiling Consumption",
+      "Trace Causality Sample"
+    ],
+    "return_or_followup_required": false,
+    "review_blocks_ready": true,
+    "review_path": "human-review/RED_TEAM_FINDINGS.md",
+    "review_red_team_status": "review-bound",
+    "status": "review-bound",
+    "usable_as_human_review_evidence": false,
+    "usable_as_review_evidence": false
+  },
+  "red_team_review_checks": [
+    {
+      "check": "Upstream P3 ceiling",
+      "failure_signal": "P4 says testing-validation-complete while P3 is implementation-ready/review-bound/unknown",
+      "required_evidence": "Verify P4 closure did not upgrade the P3 claim ceiling."
+    },
+    {
+      "check": "Residual review-bound items",
+      "failure_signal": "review-bound or signoff-pending evidence is hidden behind PASS wording",
+      "required_evidence": "Inspect visual/UI/signoff/review-bound records before reading the final score."
+    },
+    {
+      "check": "Claim ceiling consumption",
+      "failure_signal": "review-bound, suggested, unknown, or missing ceiling is described as complete/pass-ready",
+      "required_evidence": "Confirm the machine claim ceiling below was consumed and not upgraded by the review."
+    },
+    {
+      "check": "Trace causality sample",
+      "failure_signal": "trace ID appears but chain status is suggested/review/unresolved or lacks code/test landing",
+      "required_evidence": "Sample one P1/P2 source obligation through downstream trace, implementation, and test evidence."
+    }
+  ],
+  "review_model": "AI / External Red-Team Review",
+  "review_surface_dir": "human-review",
+  "schema_version": "human-review-surface.v1",
+  "surface_dir": "human-review",
+  "title": "Phase-4 AI / External Red-Team Review"
+}

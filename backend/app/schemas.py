@@ -37,6 +37,26 @@ class PickItem(BaseModel):
     is_action_triggered: Optional[bool] = Field(False, description="是否触发异动（量能活跃或K线实体达标）")
     ambush_add_date: Optional[str] = Field(None, description="加入埋伏池的日期")
     expected_logic: Optional[str] = Field(None, description="埋伏预期逻辑")
+    # v1.3 新增：狙击手评分昨日回溯异动归因与得分变化
+    trend_reason: Optional[str] = Field(None, description="昨日回溯异动归因原因")
+    score_change: Optional[int] = Field(None, description="较昨日得分变动")
+    score_trend: List[int] = Field(default_factory=list, description="最近7日评分趋势")
+    # Sniper-specific fields
+    sniper_score: Optional[int] = None
+    sniper_rejected: Optional[int] = None
+    sniper_reject_reason: Optional[str] = None
+    s_holder_score: Optional[int] = None
+    s_chip_vacuum_score: Optional[int] = None
+    s_ma_state_score: Optional[int] = None
+    s_safety_margin_score: Optional[int] = None
+    s_macd_weekly_score: Optional[int] = None
+    s_low_volume_score: Optional[int] = None
+    s_golden_pit_score: Optional[int] = None
+    s_ignition_score: Optional[int] = None
+    s_top_list_score: Optional[int] = None
+    s_news_score: Optional[int] = None
+    s_base_total: Optional[int] = None
+    s_dynamic_total: Optional[int] = None
 
 
 class PicksResponse(ApiResponse):
@@ -54,6 +74,7 @@ class KlineItem(BaseModel):
     pct_chg: Optional[float] = None
     turnover_rate: Optional[float] = None
     ma5: Optional[float] = None
+    ma10: Optional[float] = None
     ma20: Optional[float] = None
     ma60: Optional[float] = None
 
@@ -96,6 +117,23 @@ class DetailPayload(BaseModel):
     top_list: List[dict]
     upcoming_float: List[dict]
     fin_indicator: Optional[dict] = None
+    history_7d: List[dict] = Field(default_factory=list, description="最近7日详细评分历史")
+    # Sniper-specific fields
+    sniper_score: Optional[int] = None
+    sniper_rejected: Optional[int] = None
+    sniper_reject_reason: Optional[str] = None
+    s_holder_score: Optional[int] = None
+    s_chip_vacuum_score: Optional[int] = None
+    s_ma_state_score: Optional[int] = None
+    s_safety_margin_score: Optional[int] = None
+    s_macd_weekly_score: Optional[int] = None
+    s_low_volume_score: Optional[int] = None
+    s_golden_pit_score: Optional[int] = None
+    s_ignition_score: Optional[int] = None
+    s_top_list_score: Optional[int] = None
+    s_news_score: Optional[int] = None
+    s_base_total: Optional[int] = None
+    s_dynamic_total: Optional[int] = None
 
 
 class DetailResponse(ApiResponse):

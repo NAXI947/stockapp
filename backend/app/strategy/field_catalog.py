@@ -9,6 +9,7 @@ STRATEGY_FIELD_CATALOG: dict[str, dict[str, Any]] = {
     "volume_ratio": {"label": "量比", "implemented": True},
     "winner_rate": {"label": "获利盘比例", "implemented": True},
     "ma5": {"label": "MA5", "implemented": True},
+    "ma10": {"label": "MA10", "implemented": True},
     "ma20": {"label": "MA20", "implemented": True},
     "ma60": {"label": "MA60", "implemented": True},
     "upper_space": {"label": "上方空间", "implemented": True},

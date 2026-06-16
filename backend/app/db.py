@@ -229,6 +229,15 @@ class Database:
                 sql = init_sql_path.read_text(encoding='utf-8')
                 if self.driver == 'sqlite':
                     cursor.executescript(sql)
+                    try:
+                        cursor.execute("PRAGMA table_info(t_strategy_daily)")
+                        columns = [row[1] for row in cursor.fetchall()]
+                        if 'ma10' not in columns:
+                            cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN ma10 REAL")
+                        if 'trend_reason' not in columns:
+                            cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN trend_reason TEXT")
+                    except Exception as e:
+                        print(f"[db migration] Failed to check/add columns: {e}")
                     connection.commit()
                     return
                 for statement in [part.strip() for part in sql.split(';') if part.strip()]:
@@ -236,6 +245,15 @@ class Database:
                     if upper.startswith('CREATE DATABASE') or upper.startswith('USE '):
                         continue
                     cursor.execute(statement)
+                try:
+                    cursor.execute("SHOW COLUMNS FROM t_strategy_daily LIKE 'ma10'")
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN ma10 REAL")
+                    cursor.execute("SHOW COLUMNS FROM t_strategy_daily LIKE 'trend_reason'")
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN trend_reason TEXT")
+                except Exception as e:
+                    print(f"[db migration] Failed to check/add columns in MySQL: {e}")
                 connection.commit()
             finally:
                 cursor.close()

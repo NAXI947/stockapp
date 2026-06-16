@@ -78,12 +78,6 @@
             >
               📝 复盘
             </button>
-            <button
-              @click="openAmbushDialog"
-              class="text-lg px-3 py-1 rounded transition-colors bg-emerald-500 text-white hover:bg-emerald-600"
-            >
-              🥷 加入埋伏池
-            </button>
           </div>
         </div>
         
@@ -124,6 +118,33 @@
           <div>
             <p class="text-xs text-gray-500">{{ getStrategyFieldLabel('trend_baseline') }}</p>
             <p class="text-base font-mono">{{ formatFlag(detail.trend_baseline) }}</p>
+          </div>
+        </div>
+
+        <!-- 7日总评分趋势可视化 -->
+        <div v-if="detail.history_7d && detail.history_7d.length" class="mt-4 pt-4 border-t">
+          <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势</p>
+          <div class="flex items-center space-x-1 overflow-x-auto pb-1">
+            <div
+              v-for="h in detail.history_7d"
+              :key="h.trade_date"
+              class="flex flex-col items-center shrink-0 w-12"
+            >
+              <div class="text-[9px] text-gray-400 font-mono">{{ h.trade_date.slice(4) }}</div>
+              <div
+                class="w-8 h-10 flex items-end justify-center bg-gray-50 rounded mt-0.5 border border-gray-100"
+                :title="`${h.trade_date}: ${h.final_score}分`"
+              >
+                <div
+                  class="w-4 rounded-t transition-all duration-300"
+                  :class="h.final_score >= 70 ? 'bg-emerald-500' : (h.final_score >= 50 ? 'bg-yellow-500' : 'bg-gray-400')"
+                  :style="`height: ${Math.max(10, (h.final_score / 100) * 100)}%`"
+                ></div>
+              </div>
+              <div class="text-[10px] font-semibold mt-0.5 font-mono" :class="getScoreClass(h.final_score)">
+                {{ h.final_score }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -201,6 +222,58 @@
           <p class="text-sm text-blue-900">
             已知基础分 {{ baseScoreSummary }}{{ chipScoreSummary }}，动能分 {{ momentumScoreSummary }}，风险项 {{ penaltyScoreSummary }}，总分以策略结果 {{ detail.final_score ?? 0 }} 分为准
           </p>
+        </div>
+      </div>
+
+      <!-- 15个细分评分项 7天评分趋势 -->
+      <div class="bg-white rounded-lg shadow p-4" v-if="detail.history_7d && detail.history_7d.length">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900">15个细分指标 7天评分变动趋势</h3>
+            <p class="text-xs text-gray-500 mt-1">可视化展示 15 个关键评分维度的 7 日内达成及最新命中情况</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          <div
+            v-for="ind in detailIndicators"
+            :key="ind.key"
+            class="p-2.5 border border-gray-100 rounded-lg bg-gray-50/50 flex flex-col justify-between"
+          >
+            <div>
+              <div class="flex justify-between items-start">
+                <span class="text-xs font-semibold text-gray-800">{{ ind.label }}</span>
+                <span
+                  class="text-[10px] px-1 py-0.2 rounded font-mono"
+                  :class="ind.latestActive ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-500'"
+                >
+                  {{ ind.latestValue }}
+                </span>
+              </div>
+              <p class="text-[10px] text-gray-400 mt-0.5 leading-tight">{{ ind.description }}</p>
+            </div>
+
+            <!-- 7天每日状态灯 -->
+            <div class="mt-2.5">
+              <div class="flex space-x-1">
+                <div
+                  v-for="(histVal, hidx) in ind.trend"
+                  :key="hidx"
+                  class="flex-1 text-center"
+                >
+                  <div
+                    class="h-2 rounded-xs transition-colors duration-200"
+                    :class="histVal ? (ind.isPenalty ? 'bg-red-500' : 'bg-emerald-500') : 'bg-gray-200'"
+                    :title="`${detail.history_7d[hidx]?.trade_date}: ${histVal ? '达成' : '未达成'}`"
+                  ></div>
+                </div>
+              </div>
+              <div class="flex justify-between text-[8px] text-gray-400 mt-0.5 font-mono leading-none">
+                <span>{{ detail.history_7d[0]?.trade_date.slice(4) }}</span>
+                <span>{{ detail.history_7d[detail.history_7d.length - 1]?.trade_date.slice(4) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -415,6 +488,7 @@ const router = useRouter()
 const watchlistStore = useWatchlistStore()
 
 const tsCode = computed(() => route.params.tsCode)
+const isSniper = computed(() => route.query.is_sniper === 'true')
 const isInWatchlist = computed(() => watchlistStore.isInWatchlist(tsCode.value))
 
 const loading = ref(false)
@@ -445,11 +519,63 @@ const latestKline = computed(() => {
 })
 
 const baseScoreItems = computed(() => {
-  const latest = latestKline.value || {}
-  const close = latest.close
-  const ma20 = latest.ma20
-  const low = latest.low
-  const high = latest.high
+  const latest = detail.value || {}
+
+  if (isSniper.value) {
+    return [
+      {
+        key: 'holder_lock',
+        label: '筹码结构与锁定',
+        scoreValue: latest.s_holder_score,
+        scoreLabel: `${latest.s_holder_score ?? 0} / 15`,
+        ruleLabel: (latest.s_holder_score || 0) >= 15 ? '筹码集中' : ((latest.s_holder_score || 0) >= 8 ? '相对稳定' : '筹码分散'),
+        description: '股东户数连降/降幅较大加分，最高 15 分',
+        active: (latest.s_holder_score || 0) >= 8
+      },
+      {
+        key: 'chip_vacuum',
+        label: '上方筹码真空度',
+        scoreValue: latest.s_chip_vacuum_score,
+        scoreLabel: `${latest.s_chip_vacuum_score ?? 0} / 10`,
+        ruleLabel: (latest.s_chip_vacuum_score || 0) >= 10 ? '上方无套牢盘' : ((latest.s_chip_vacuum_score || 0) >= 7 ? '套牢盘少' : '套牢盘多'),
+        description: '上方 10% 空间套牢盘越少得分越高，最高 10 分',
+        active: (latest.s_chip_vacuum_score || 0) >= 7
+      },
+      {
+        key: 'ma_state',
+        label: '均线状态',
+        scoreValue: latest.s_ma_state_score,
+        scoreLabel: `${latest.s_ma_state_score ?? 0} / 10`,
+        ruleLabel: (latest.s_ma_state_score || 0) >= 10 ? '粘合' : ((latest.s_ma_state_score || 0) >= 7 ? '多头排列' : '缠绕偏强'),
+        description: '均线粘合度/多头排列加分，最高 10 分',
+        active: (latest.s_ma_state_score || 0) >= 4
+      },
+      {
+        key: 'safety_margin',
+        label: '安全边际',
+        scoreValue: latest.s_safety_margin_score,
+        scoreLabel: `${latest.s_safety_margin_score ?? 0} / 10`,
+        ruleLabel: (latest.s_safety_margin_score || 0) >= 10 ? '安全边际极高' : ((latest.s_safety_margin_score || 0) >= 6 ? '合理区间' : '偏离过大'),
+        description: '股价与 20日线 乖离率合理度，最高 10 分',
+        active: (latest.s_safety_margin_score || 0) >= 6
+      },
+      {
+        key: 'macd_weekly',
+        label: 'MACD周线',
+        scoreValue: latest.s_macd_weekly_score,
+        scoreLabel: `${latest.s_macd_weekly_score ?? 0} / 15`,
+        ruleLabel: (latest.s_macd_weekly_score || 0) >= 15 ? '零轴附近金叉' : ((latest.s_macd_weekly_score || 0) >= 10 ? '红柱放大' : '零轴粘合'),
+        description: '周线级别趋势与动能配合情况，最高 15 分',
+        active: (latest.s_macd_weekly_score || 0) >= 5
+      }
+    ]
+  }
+
+  const latestKlineVal = latestKline.value || {}
+  const close = latestKlineVal.close
+  const ma20 = latestKlineVal.ma20
+  const low = latestKlineVal.low
+  const high = latestKlineVal.high
   const pctChg = detail.value?.pct_chg
 
   let bodyScore = 0
@@ -538,6 +664,58 @@ const baseScoreItems = computed(() => {
 })
 
 const momentumScoreItems = computed(() => {
+  const latest = detail.value || {}
+
+  if (isSniper.value) {
+    return [
+      {
+        key: 'low_volume',
+        label: '极致地量',
+        scoreValue: latest.s_low_volume_score,
+        scoreLabel: `${latest.s_low_volume_score ?? 0} / 8`,
+        ruleLabel: (latest.s_low_volume_score || 0) >= 8 ? '地量吸筹' : ((latest.s_low_volume_score || 0) >= 4 ? '缩量调整' : '未出现缩量'),
+        description: '日换手率低于 1.5% 或严重缩量，最高 8 分',
+        active: (latest.s_low_volume_score || 0) >= 4
+      },
+      {
+        key: 'golden_pit',
+        label: '黄金坑/骗线',
+        scoreValue: latest.s_golden_pit_score,
+        scoreLabel: `${latest.s_golden_pit_score ?? 0} / 10`,
+        ruleLabel: (latest.s_golden_pit_score || 0) >= 10 ? '快速收回' : '未出现',
+        description: '跌破均线洗盘后，3日内反包收回，最高 10 分',
+        active: (latest.s_golden_pit_score || 0) >= 10
+      },
+      {
+        key: 'ignition',
+        label: '放量点火首阳',
+        scoreValue: latest.s_ignition_score,
+        scoreLabel: `${latest.s_ignition_score ?? 0} / 10`,
+        ruleLabel: (latest.s_ignition_score || 0) >= 10 ? '放量首阳' : ((latest.s_ignition_score || 0) >= 5 ? '试盘长上影' : '未出现'),
+        description: '量比突增且日线实体饱满/长上影试盘，最高 10 分',
+        active: (latest.s_ignition_score || 0) >= 5
+      },
+      {
+        key: 'top_list_score',
+        label: '龙虎榜/大宗',
+        scoreValue: latest.s_top_list_score,
+        scoreLabel: `${latest.s_top_list_score ?? 0} / 7`,
+        ruleLabel: (latest.s_top_list_score || 0) >= 7 ? '机构主买' : ((latest.s_top_list_score || 0) >= 4 ? '资金参与' : '未上榜'),
+        description: '机构主力买入或大宗交易溢价接盘，最高 7 分',
+        active: (latest.s_top_list_score || 0) >= 4
+      },
+      {
+        key: 'news_score',
+        label: '消息面共振',
+        scoreValue: latest.s_news_score,
+        scoreLabel: `${latest.s_news_score ?? 0} / 5`,
+        ruleLabel: (latest.s_news_score || 0) >= 5 ? '实质利好' : '无明显利好',
+        description: '产业利好落地/研报首次覆盖加分，最高 5 分',
+        active: (latest.s_news_score || 0) >= 5
+      }
+    ]
+  }
+
   const winnerScore = (detail.value?.winner_rate || 0) >= 80 ? 5 : 0
   const riskPenalty = detail.value?.float_risk_7d ? -20 : 0
 
@@ -596,6 +774,276 @@ const momentumScoreItems = computed(() => {
       description: '7 日内有解禁风险时扣 20 分',
       active: !!detail.value?.float_risk_7d,
       penalty: true
+    }
+  ]
+})
+
+const detailIndicators = computed(() => {
+  const history = detail.value?.history_7d || []
+  const latest = detail.value || {}
+
+  // Helpers to resolve trend of a key from history
+  const getTrendList = (key, isBoolean = false) => {
+    return history.map(h => isBoolean ? !!h[key] : Number(h[key] || 0) > 0)
+  }
+
+  if (isSniper.value) {
+    // 15 Sniper indicators
+    return [
+      {
+        key: 'st_risk',
+        label: 'ST风险过滤',
+        description: '标的被特别处理 ST/退市风险，触发直接淘汰',
+        latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'ST',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'ST') ? 'ST股 (直接过滤)' : '通过',
+        trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'ST'),
+        isPenalty: true,
+      },
+      {
+        key: 'ma_break',
+        label: '均线加速破位',
+        description: '均线死叉向下且加速发散，触发直接淘汰',
+        latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'MA_BREAK',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'MA_BREAK') ? '破位 (直接过滤)' : '通过',
+        trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'MA_BREAK'),
+        isPenalty: true,
+      },
+      {
+        key: 'weekly_macd_dead',
+        label: '周线MACD死叉',
+        description: 'MACD周线高位死叉且绿柱放大，触发直接淘汰',
+        latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'WEEKLY_MACD_DEAD',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'WEEKLY_MACD_DEAD') ? '死叉 (直接过滤)' : '通过',
+        trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'WEEKLY_MACD_DEAD'),
+        isPenalty: true,
+      },
+      {
+        key: 'holder_surge',
+        label: '筹码大幅分散',
+        description: '股东户数环比骤增超过 15%，触发直接淘汰',
+        latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'HOLDER_SURGE',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'HOLDER_SURGE') ? '骤增 (直接过滤)' : '通过',
+        trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'HOLDER_SURGE'),
+        isPenalty: true,
+      },
+      {
+        key: 'fundamental_warning',
+        label: '突发基本面恶化',
+        description: '突发基本面恶化（大额减持/立案调查等），直接淘汰',
+        latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'FUNDAMENTAL_WARN',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'FUNDAMENTAL_WARN') ? '恶化 (直接过滤)' : '通过',
+        trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'FUNDAMENTAL_WARN'),
+        isPenalty: true,
+      },
+      {
+        key: 'holder_lock',
+        label: '筹码结构与锁定',
+        description: '股东户数连降或累计降幅大于 5%',
+        latestActive: (latest.s_holder_score || 0) >= 8,
+        latestValue: latest.s_holder_score != null ? `${latest.s_holder_score}分` : '-',
+        trend: history.map(h => (h.s_holder_score || 0) >= 8),
+      },
+      {
+        key: 'chip_vacuum',
+        label: '上方筹码真空度',
+        description: '当前价上方 10% 区间内套牢盘比例',
+        latestActive: (latest.s_chip_vacuum_score || 0) >= 7,
+        latestValue: latest.s_chip_vacuum_score != null ? `${latest.s_chip_vacuum_score}分` : '-',
+        trend: history.map(h => (h.s_chip_vacuum_score || 0) >= 7),
+      },
+      {
+        key: 'ma_state',
+        label: '均线状态',
+        description: '5/10/20/60日均线粘合度与排列状态',
+        latestActive: (latest.s_ma_state_score || 0) >= 7,
+        latestValue: latest.s_ma_state_score != null ? `${latest.s_ma_state_score}分` : '-',
+        trend: history.map(h => (h.s_ma_state_score || 0) >= 7),
+      },
+      {
+        key: 'safety_margin',
+        label: '安全边际',
+        description: '股价与20日均线的偏离度合理性',
+        latestActive: (latest.s_safety_margin_score || 0) >= 6,
+        latestValue: latest.s_safety_margin_score != null ? `${latest.s_safety_margin_score}分` : '-',
+        trend: history.map(h => (h.s_safety_margin_score || 0) >= 6),
+      },
+      {
+        key: 'macd_weekly_score',
+        label: 'MACD周线评分',
+        description: '周线 MACD 处于零轴附近金叉或红柱放大',
+        latestActive: (latest.s_macd_weekly_score || 0) >= 10,
+        latestValue: latest.s_macd_weekly_score != null ? `${latest.s_macd_weekly_score}分` : '-',
+        trend: history.map(h => (h.s_macd_weekly_score || 0) >= 10),
+      },
+      {
+        key: 'low_volume',
+        label: '极致地量',
+        description: '换手率低于1.5%或成交量严重缩水',
+        latestActive: (latest.s_low_volume_score || 0) >= 4,
+        latestValue: latest.s_low_volume_score != null ? `${latest.s_low_volume_score}分` : '-',
+        trend: history.map(h => (h.s_low_volume_score || 0) >= 4),
+      },
+      {
+        key: 'golden_pit',
+        label: '黄金坑/骗线',
+        description: '跌破支撑后放量快速反包收回',
+        latestActive: (latest.s_golden_pit_score || 0) >= 10,
+        latestValue: latest.s_golden_pit_score != null ? `${latest.s_golden_pit_score}分` : '-',
+        trend: history.map(h => (h.s_golden_pit_score || 0) >= 10),
+      },
+      {
+        key: 'ignition',
+        label: '放量点火首阳',
+        description: '成交量异常放大且日线实体阳线饱满',
+        latestActive: (latest.s_ignition_score || 0) >= 10,
+        latestValue: latest.s_ignition_score != null ? `${latest.s_ignition_score}分` : '-',
+        trend: history.map(h => (h.s_ignition_score || 0) >= 10),
+      },
+      {
+        key: 'top_list_score',
+        label: '龙虎榜/大宗',
+        description: '机构主力大额净买入或大宗溢价接盘',
+        latestActive: (latest.s_top_list_score || 0) >= 4,
+        latestValue: latest.s_top_list_score != null ? `${latest.s_top_list_score}分` : '-',
+        trend: history.map(h => (h.s_top_list_score || 0) >= 4),
+      },
+      {
+        key: 'news_score',
+        label: '消息面共振',
+        description: '核心基本面利好或分析师强力推荐',
+        latestActive: (latest.s_news_score || 0) >= 5,
+        latestValue: latest.s_news_score != null ? `${latest.s_news_score}分` : '-',
+        trend: history.map(h => (h.s_news_score || 0) >= 5),
+      }
+    ]
+  }
+
+  // 15 indicators
+  return [
+    {
+      key: 'trend_baseline',
+      label: '趋势基线',
+      description: '收盘价高于 60日均线 ma60',
+      latestActive: !!latest.trend_baseline,
+      latestValue: latest.trend_baseline ? '达成 (15分)' : '未达成',
+      trend: getTrendList('trend_baseline'),
+    },
+    {
+      key: 'chip_vacuum',
+      label: '筹码真空',
+      description: '上方 9.5% 价格区间内筹码分布小于 10%',
+      latestActive: !!latest.chip_vacuum,
+      latestValue: latest.chip_vacuum ? '达成' : '未达成',
+      trend: getTrendList('chip_vacuum'),
+    },
+    {
+      key: 'kline_body',
+      label: 'K线实体',
+      description: '收盘价处于当日最高与最低价振幅的相对高位',
+      latestActive: !!latest.kline_body,
+      latestValue: latest.kline_body ? '达成' : '未达成',
+      trend: getTrendList('kline_body'),
+    },
+    {
+      key: 'liquidity_base',
+      label: '量能活跃',
+      description: '量比 ≥ 1.8 且换手率 ≥ 2%',
+      latestActive: !!latest.liquidity_base,
+      latestValue: latest.liquidity_base ? '达成' : '未达成',
+      trend: getTrendList('liquidity_base'),
+    },
+    {
+      key: 'safety_margin',
+      label: '安全边际',
+      description: '收盘价偏离 20日均线 ma20 幅度小于 25%',
+      latestActive: !!latest.safety_margin,
+      latestValue: latest.safety_margin ? '达成' : '未达成',
+      trend: getTrendList('safety_margin'),
+    },
+    {
+      key: 'is_limit_up',
+      label: '当日涨停',
+      description: '当日价格达到涨停板标准 (+15分)',
+      latestActive: !!latest.is_limit_up,
+      latestValue: latest.is_limit_up ? '涨停 (+15分)' : '否',
+      trend: getTrendList('is_limit_up'),
+    },
+    {
+      key: 'bull_trend',
+      label: '多头排列',
+      description: '均线呈 ma5 > ma20 > ma60 多头排列 (+10分)',
+      latestActive: !!latest.bull_trend,
+      latestValue: latest.bull_trend ? '多头 (+10分)' : '否',
+      trend: getTrendList('bull_trend'),
+    },
+    {
+      key: 'limit_up_20d',
+      label: '近20日涨停记忆',
+      description: '过去 20 个交易日内出现过涨停记录 (+10分)',
+      latestActive: !!latest.limit_up_20d,
+      latestValue: latest.limit_up_20d ? '有记忆 (+10分)' : '无',
+      trend: getTrendList('limit_up_20d'),
+    },
+    {
+      key: 'winner_rate_80',
+      label: '获利盘优势',
+      description: '最新收盘获利盘比例达到 80% 以上 (+5分)',
+      latestActive: (latest.winner_rate || 0) >= 80,
+      latestValue: (latest.winner_rate || 0) >= 80 ? '优势 (+5分)' : '普通',
+      trend: history.map(h => (h.winner_rate || 0) >= 80),
+    },
+    {
+      key: 'top_list_3d',
+      label: '龙虎榜加分',
+      description: '近 3 日龙虎榜资金呈净流入状态 (+5分)',
+      latestActive: !!latest.top_list_3d,
+      latestValue: latest.top_list_3d ? '净流入 (+5分)' : '否',
+      trend: getTrendList('top_list_3d'),
+    },
+    {
+      key: 'float_risk_7d',
+      label: '解禁风险扣分',
+      description: '未来 7 个交易日内存在解禁风险 (-20分)',
+      latestActive: !!latest.float_risk_7d,
+      latestValue: latest.float_risk_7d ? '有风险 (-20分)' : '无',
+      trend: getTrendList('float_risk_7d'),
+      isPenalty: true,
+    },
+    {
+      key: 'st_risk',
+      label: 'ST风险过滤',
+      description: '标的被特别处理 ST/退市风险，触发直接淘汰',
+      latestActive: !!latest.st_risk,
+      latestValue: latest.st_risk ? 'ST股 (直接过滤)' : '非ST',
+      trend: getTrendList('st_risk'),
+      isPenalty: true,
+    },
+    {
+      key: 'debt_to_assets_limit',
+      label: '资产负债率',
+      description: '最新财务资产负债率不得高于 85%',
+      latestActive: (latest.fin_indicator?.debt_to_assets || 0) > 85,
+      latestValue: (latest.fin_indicator?.debt_to_assets || 0) > 85 ? '过高 (过滤)' : '正常',
+      trend: history.map(() => (latest.fin_indicator?.debt_to_assets || 0) > 85),
+      isPenalty: true,
+    },
+    {
+      key: 'roe_limit',
+      label: 'ROE盈利限制',
+      description: '最新扣非 ROE 不得低于 1.5%',
+      latestActive: (latest.fin_indicator?.roe || 0) < 1.5 && (latest.fin_indicator?.roe !== null),
+      latestValue: ((latest.fin_indicator?.roe || 0) < 1.5 && (latest.fin_indicator?.roe !== null)) ? '过低 (过滤)' : '正常',
+      trend: history.map(() => ((latest.fin_indicator?.roe || 0) < 1.5 && (latest.fin_indicator?.roe !== null))),
+      isPenalty: true,
+    },
+    {
+      key: 'final_score_rule',
+      label: '综合评分及格',
+      description: '计算得到的综合最终分不得低于 50分',
+      latestActive: (latest.final_score || 0) < 50,
+      latestValue: (latest.final_score || 0) < 50 ? '不及格' : '及格',
+      trend: history.map(h => (h.final_score || 0) < 50),
+      isPenalty: true,
     }
   ]
 })
@@ -769,8 +1217,9 @@ async function fetchData() {
   errorDetails.value = ''
   
   try {
+    const params = isSniper.value ? { is_sniper: true } : {}
     const [detailData, klineData] = await Promise.all([
-      stockApi.getDetail(tsCode.value),
+      stockApi.getDetail(tsCode.value, params),
       stockApi.getKline(tsCode.value, 60)
     ])
     detail.value = detailData

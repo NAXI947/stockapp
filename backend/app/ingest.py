@@ -55,6 +55,24 @@ COMMON_DATE_SUPPLEMENTAL_SPECS = [
         ['ts_code', 'trade_date', 'reason'],
         source_map={'net': 'net_amount', 'buy': 'l_buy', 'sell': 'l_sell'},
     ),
+    TableSpec(
+        'weekly',
+        't_weekly_bar',
+        ['ts_code', 'trade_date', 'open', 'high', 'low', 'close', 'vol', 'amount', 'pct_chg'],
+        ['ts_code', 'trade_date'],
+    ),
+    TableSpec(
+        'stk_holdernumber',
+        't_stk_holdernumber',
+        ['ts_code', 'ann_date', 'end_date', 'holder_num'],
+        ['ts_code', 'end_date'],
+    ),
+    TableSpec(
+        'block_trade',
+        't_block_trade',
+        ['ts_code', 'trade_date', 'price', 'vol', 'amount', 'premium'],
+        ['ts_code', 'trade_date', 'price', 'vol'],
+    ),
 ]
 
 FULL_MARKET_SUPPLEMENTAL_SPECS = [
@@ -82,11 +100,12 @@ FEATURED_DATE_SUPPLEMENTAL_SPECS = [
     ),
 ]
 
-DATE_DRIVEN_SUPPLEMENTAL_API_NAMES = {'top_list', 'cyq_perf'}
+DATE_DRIVEN_SUPPLEMENTAL_API_NAMES = {'top_list', 'cyq_perf', 'weekly', 'stk_holdernumber', 'block_trade'}
 
 ALL_DROP_TABLES = [
     't_strategy_daily', 't_fin_indicator', 't_share_float', 't_top_list', 't_cyq_perf',
     't_concept_detail', 't_daily_basic', 't_adj_factor', 't_daily_bar', 't_trade_cal', 't_stock_basic',
+    't_weekly_bar', 't_stk_holdernumber', 't_block_trade',
 ]
 
 PARAM_BATCH_SIZE = 500
@@ -395,7 +414,12 @@ class DataIngestionService:
             self._merge_table_summaries(summary, featured_summary)
             summary['t_strategy_daily'] = self._measure_stage(
                 'build_strategy_daily',
-                self._build_strategy_daily,
+                lambda: self._build_strategy_daily(trade_date=trade_date),
+                stage_callback,
+            )
+            summary['t_sniper_daily'] = self._measure_stage(
+                'build_sniper_daily',
+                lambda: self._build_sniper_daily(trade_date=trade_date),
                 stage_callback,
             )
             return summary
@@ -487,6 +511,11 @@ class DataIngestionService:
                     'build_strategy_daily',
                     lambda: self._build_strategy_daily(trade_date=trade_date),
                     stage_callback,
+                ),
+                't_sniper_daily': self._measure_stage(
+                    'build_sniper_daily',
+                    lambda: self._build_sniper_daily(trade_date=trade_date),
+                    stage_callback,
                 )
             }
         return self._run_with_heartbeat('run_strategy_sync', _run)
@@ -539,6 +568,11 @@ class DataIngestionService:
             summary['t_strategy_daily'] = self._measure_stage(
                 'build_strategy_daily',
                 self._build_strategy_daily,
+                stage_callback,
+            )
+            summary['t_sniper_daily'] = self._measure_stage(
+                'build_sniper_daily',
+                self._build_sniper_daily,
                 stage_callback,
             )
             market_total_rows = (
@@ -666,6 +700,11 @@ class DataIngestionService:
                     'rebuild_strategy_daily_full',
                     self._build_strategy_daily,
                     stage_callback,
+                ),
+                't_sniper_daily': self._measure_stage(
+                    'rebuild_sniper_daily_full',
+                    self._build_sniper_daily,
+                    stage_callback,
                 )
             }
         return self._run_with_heartbeat('run_yearly_sync', _run)
@@ -792,10 +831,20 @@ class DataIngestionService:
             if not index_member_available:
                 break
             try:
-                members = self._query_any_fields('index_member_all', {'l2_code': l2_code}, fields=SW_INDEX_MEMBER_FIELDS)
+                try:
+                    members = self._query_any_fields('index_member_all', {'l2_code': l2_code}, fields=SW_INDEX_MEMBER_FIELDS)
+                except Exception as exc:
+                    # Fallback to index_member if index_member_all is not available or fails
+                    logging.getLogger(__name__).info(
+                        "index_member_all API failed, trying index_member fallback for l2_code=%s: %s", l2_code, exc
+                    )
+                    members = self._query_any_fields('index_member', {'index_code': l2_code}, fields=['index_code', 'con_code', 'in_date', 'out_date'])
+                    # Normalise fields to match SW_INDEX_MEMBER_FIELDS expected by downstream
+                    for m in members:
+                        m['ts_code'] = m.get('con_code')
             except Exception as exc:
                 logging.getLogger(__name__).warning(
-                    "index_member_all API unavailable, skipping SW industry mapping: %s", exc
+                    "Both index_member_all and index_member API failed, skipping SW industry mapping: %s", exc
                 )
                 index_member_available = False
                 break
@@ -937,8 +986,25 @@ class DataIngestionService:
                     f"date supplemental sync only supports trade-date APIs; "
                     f"got api={spec.api_name}"
                 )
-            param_list = self._build_query_param_list(spec.api_name, dates)
-            summary[spec.table_name] = self._sync_spec_in_batches(spec, param_list)
+            try:
+                param_list = self._build_query_param_list(spec.api_name, dates)
+                summary[spec.table_name] = self._sync_spec_in_batches(spec, param_list)
+            except Exception as exc:
+                exc_str = str(exc)
+                is_permission_error = any(marker in exc_str for marker in ("权限", "积分", "抱歉", "privilege", "permission", "limit"))
+                if is_permission_error and spec.api_name in ('stk_holdernumber', 'block_trade', 'weekly'):
+                    self._log(
+                        f"[warn] skip {spec.table_name} because of Tushare permission/limit issues: {exc_str}"
+                    )
+                    summary[spec.table_name] = {
+                        'rows': 0,
+                        'expected_fields': spec.columns,
+                        'missing_fields': [],
+                        'null_fields': {},
+                        'warning': exc_str
+                    }
+                else:
+                    raise
 
     def _resolve_featured_trade_dates(self, trade_date: str | None) -> List[str]:
         if trade_date:
@@ -976,8 +1042,10 @@ class DataIngestionService:
                 for row in concept_rows
                 if row.get('ts_code') and row.get('name')
             ]
-        if api_name in ('cyq_perf', 'top_list'):
+        if api_name in ('cyq_perf', 'top_list', 'weekly', 'block_trade'):
             return [{'trade_date': trade_date} for trade_date in (trade_dates or [])]
+        if api_name == 'stk_holdernumber':
+            return [{'ann_date': trade_date} for trade_date in (trade_dates or [])]
         if api_name in ('share_float', 'fina_indicator'):
             rows = self.database.fetch_all('SELECT ts_code FROM t_stock_basic ORDER BY ts_code')
             return [{'ts_code': row['ts_code']} for row in rows]
@@ -1562,14 +1630,15 @@ class DataIngestionService:
 
     def _build_strategy_daily(self, trade_date: str | None = None) -> Dict[str, Any]:
         from backend.app.strategy import get_all_strategies
-        strategies = get_all_strategies()
+        # Only include non-sniper strategies for t_strategy_daily
+        strategies = {k: v for k, v in get_all_strategies().items() if "sniper" not in k}
         if not strategies:
             return {'rows': 0, 'expected_fields': [], 'missing_fields': [], 'null_fields': {}}
 
         # For MVP, we presume the first strategy handles primary DB fields 
         # (like the original Vacuum strategy fields).
         # We merge all expected fields.
-        expected_fields_set = {'ts_code', 'trade_date', 'pct_chg', 'turnover_rate', 'volume_ratio', 'winner_rate'}
+        expected_fields_set = {'ts_code', 'trade_date', 'pct_chg', 'turnover_rate', 'volume_ratio', 'winner_rate', 'trend_reason'}
         for strategy in strategies.values():
             expected_fields_set.update(strategy.expected_fields)
         expected_fields = list(expected_fields_set)
@@ -1605,6 +1674,8 @@ class DataIngestionService:
                 stock_name = stock_names.get(ts_code, '')
                 top_list_data = top_list_map.get(ts_code, [])
                 
+                prev_row = None
+                
                 for index, row in enumerate(series):
                     if trade_date and row['trade_date'] != trade_date:
                         continue
@@ -1638,12 +1709,76 @@ class DataIngestionService:
                     # Ensure final score is present
                     record['final_score'] = record.get('final_score', total_score)
                     
+                    # Fetch yesterday's strategy result to perform yesterday rollback trend analysis
+                    # We look up in the cache (prev_row) first, then database
+                    trend_reason = ""
+                    try:
+                        if prev_row is None:
+                            # Find the immediately preceding row in database for this ts_code
+                            prev_row = self.database.fetch_one(
+                                """SELECT final_score, trend_baseline, chip_vacuum, kline_body, 
+                                          liquidity_base, safety_margin, top_list_3d, st_risk, final_score 
+                                   FROM t_strategy_daily 
+                                   WHERE ts_code = %s AND trade_date < %s 
+                                   ORDER BY trade_date DESC LIMIT 1""",
+                                (row['ts_code'], row['trade_date'])
+                            )
+                        if prev_row:
+                            prev_total = int(prev_row.get('final_score') or 0)
+                            curr_total = int(record.get('final_score') or 0)
+                            diff_score = curr_total - prev_total
+                            
+                            # Check sub-dimension diffs
+                            dimensions = {
+                                'trend_baseline': "趋势基线",
+                                'chip_vacuum': "上方筹码真空度",
+                                'kline_body': "K线实体形态",
+                                'liquidity_base': "量能活跃度",
+                                'safety_margin': "安全边际",
+                                'top_list_3d': "龙虎榜资金流入",
+                            }
+                            diffs = {}
+                            for key, label in dimensions.items():
+                                prev_val = int(prev_row.get(key) or 0)
+                                curr_val = int(record.get(key) or 0)
+                                diffs[label] = curr_val - prev_val
+                                
+                            # Find largest positive diff or largest absolute diff
+                            max_diff_label = None
+                            max_diff_val = -9999
+                            for label, val in diffs.items():
+                                if val > max_diff_val:
+                                    max_diff_val = val
+                                    max_diff_label = label
+                                    
+                            if max_diff_val > 0:
+                                trend_reason = f"{max_diff_label}大幅改善"
+                            elif max_diff_val < 0:
+                                # Find largest drop
+                                min_diff_label = None
+                                min_diff_val = 9999
+                                for label, val in diffs.items():
+                                    if val < min_diff_val:
+                                        min_diff_val = val
+                                        min_diff_label = label
+                                if min_diff_val < 0:
+                                    trend_reason = f"{min_diff_label}有所退化"
+                                else:
+                                    trend_reason = "各项指标维持稳定"
+                            else:
+                                trend_reason = "指标相比昨日无明显变化"
+                    except Exception as e:
+                        logging.getLogger(__name__).warning("Failed to compute trend_reason: %s", e)
+                        
+                    record['trend_reason'] = trend_reason or "首日建立指标底座"
+                    
                     # Fill missing expected fields with None
                     for f in expected_fields:
                         if f not in record:
                             record[f] = None
                             
                     payload_row = tuple(record.get(f) for f in expected_fields)
+                    prev_row = record
                     payload.append(payload_row)
                     strategy_records.append(record)
 
@@ -1686,13 +1821,16 @@ class DataIngestionService:
         aggregate_nulls: Dict[str, int] = {}
         for index, trade_date in enumerate(trade_dates, start=1):
             summary = self._build_strategy_daily(trade_date=trade_date)
-            total_rows += int(summary.get('rows', 0) or 0)
+            sniper_summary = self._build_sniper_daily(trade_date=trade_date)
+            total_rows += int(summary.get('rows', 0) or 0) + int(sniper_summary.get('rows', 0) or 0)
             expected_fields = list(summary.get('expected_fields') or expected_fields)
             missing_fields.update(summary.get('missing_fields') or [])
             for column, count in (summary.get('null_fields') or {}).items():
                 aggregate_nulls[column] = aggregate_nulls.get(column, 0) + int(count or 0)
+            for column, count in (sniper_summary.get('null_fields') or {}).items():
+                aggregate_nulls[column] = aggregate_nulls.get(column, 0) + int(count or 0)
             self._log(
-                f"[progress] t_strategy_daily impact_date {index}/{len(trade_dates)} "
+                f"[progress] strategy and sniper daily impact_date {index}/{len(trade_dates)} "
                 f"current={trade_date} inserted={total_rows}"
             )
         return {
@@ -1945,8 +2083,244 @@ class DataIngestionService:
         
         return result
 
+    def _load_weekly_series(self, ts_codes: List[str], trade_date: str | None) -> Dict[str, List[Dict[str, Any]]]:
+        if not ts_codes:
+            return {}
+        placeholders = ', '.join(['%s'] * len(ts_codes))
+        sql = f'''
+        SELECT ts_code, trade_date, close
+        FROM t_weekly_bar
+        WHERE ts_code IN ({placeholders})
+        '''
+        params = list(ts_codes)
+        if trade_date:
+            try:
+                target_dt = datetime.strptime(trade_date, '%Y%m%d').date()
+                lookback_start = (target_dt - timedelta(days=600)).strftime('%Y%m%d')
+            except Exception:
+                lookback_start = trade_date
+            sql += ' AND trade_date <= %s AND trade_date >= %s'
+            params.extend([trade_date, lookback_start])
+        sql += ' ORDER BY ts_code, trade_date ASC'
+        
+        rows = self.database.fetch_all(sql, tuple(params))
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        for row in rows:
+            ts_code = row['ts_code']
+            result.setdefault(ts_code, []).append({
+                'trade_date': row['trade_date'],
+                'close': row['close']
+            })
+        return result
+
+    def _load_holder_data(self, ts_codes: List[str], trade_date: str | None) -> Dict[str, List[Dict[str, Any]]]:
+        if not ts_codes:
+            return {}
+        placeholders = ', '.join(['%s'] * len(ts_codes))
+        sql = f'''
+        SELECT ts_code, end_date, holder_num
+        FROM t_stk_holdernumber
+        WHERE ts_code IN ({placeholders})
+        '''
+        params = list(ts_codes)
+        if trade_date:
+            try:
+                target_dt = datetime.strptime(trade_date, '%Y%m%d').date()
+                lookback_start = (target_dt - timedelta(days=365)).strftime('%Y%m%d')
+            except Exception:
+                lookback_start = trade_date
+            sql += ' AND end_date <= %s AND end_date >= %s'
+            params.extend([trade_date, lookback_start])
+        sql += ' ORDER BY ts_code, end_date ASC'
+        
+        rows = self.database.fetch_all(sql, tuple(params))
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        for row in rows:
+            ts_code = row['ts_code']
+            result.setdefault(ts_code, []).append({
+                'end_date': row['end_date'],
+                'holder_num': row['holder_num']
+            })
+        return result
+
+    def _load_block_trade_data(self, ts_codes: List[str], trade_date: str | None) -> Dict[str, List[Dict[str, Any]]]:
+        if not ts_codes:
+            return {}
+        placeholders = ', '.join(['%s'] * len(ts_codes))
+        sql = f'''
+        SELECT ts_code, trade_date, premium
+        FROM t_block_trade
+        WHERE ts_code IN ({placeholders})
+        '''
+        params = list(ts_codes)
+        if trade_date:
+            sql += ' AND trade_date = %s'
+            params.append(trade_date)
+        
+        rows = self.database.fetch_all(sql, tuple(params))
+        result: Dict[str, List[Dict[str, Any]]] = {}
+        for row in rows:
+            ts_code = row['ts_code']
+            result.setdefault(ts_code, []).append({
+                'trade_date': row['trade_date'],
+                'premium': row['premium']
+            })
+        return result
+
+    def _build_sniper_daily(self, trade_date: str | None = None) -> Dict[str, Any]:
+        from backend.app.strategy.sniper_strategy import SniperStrategy
+        strategy = SniperStrategy()
+        
+        expected_fields = ['ts_code', 'trade_date', 'pct_chg', 'turnover_rate', 'volume_ratio', 'trend_reason'] + strategy.expected_fields
+        
+        total_inserted = 0
+        aggregate_nulls: Dict[str, int] = {}
+        ts_codes = self._load_strategy_ts_codes(trade_date)
+        total_batches = (len(ts_codes) + STRATEGY_TS_CODE_BATCH_SIZE - 1) // STRATEGY_TS_CODE_BATCH_SIZE
+
+        stock_names = self._load_stock_names()
+        
+        for batch_index, ts_code_batch in enumerate(self._chunked_values(ts_codes, STRATEGY_TS_CODE_BATCH_SIZE), start=1):
+            rows = self._load_strategy_source_rows(ts_code_batch, trade_date)
+            float_rows = self._load_strategy_float_rows(ts_code_batch, trade_date)
+            float_map = self._build_float_risk_map(float_rows)
+            
+            top_list_map = self._load_top_list_3d(ts_code_batch, trade_date)
+            weekly_map = self._load_weekly_series(ts_code_batch, trade_date)
+            holder_map = self._load_holder_data(ts_code_batch, trade_date)
+            block_map = self._load_block_trade_data(ts_code_batch, trade_date)
+
+            grouped_rows: Dict[str, List[Dict[str, Any]]] = {}
+            for row in rows:
+                grouped_rows.setdefault(row['ts_code'], []).append(row)
+
+            payload = []
+            strategy_records: List[Dict[str, Any]] = []
+            for ts_code, series in grouped_rows.items():
+                stock_name = stock_names.get(ts_code, '')
+                top_list_data = top_list_map.get(ts_code, [])
+                weekly_series = weekly_map.get(ts_code, [])
+                holder_data = holder_map.get(ts_code, [])
+                block_trade_data = block_map.get(ts_code, [])
+                
+                prev_row = None
+                for index, row in enumerate(series):
+                    if trade_date and row['trade_date'] != trade_date:
+                        continue
+                    
+                    float_risk_7d = self._has_float_risk(float_map.get(ts_code, []), row['trade_date'])
+                    
+                    res = strategy.calculate(
+                        series, index, float_risk_7d, top_list_data, stock_name,
+                        weekly_series=weekly_series,
+                        holder_data=holder_data,
+                        block_trade_data=block_trade_data
+                    )
+                    
+                    if not res:
+                        continue
+                        
+                    row_dict = dict(row)
+                    record = {
+                        'ts_code': row['ts_code'],
+                        'trade_date': row['trade_date'],
+                        'pct_chg': row_dict.get('pct_chg'),
+                        'turnover_rate': row_dict.get('turnover_rate'),
+                        'volume_ratio': row_dict.get('volume_ratio'),
+                    }
+                    record.update(res.extra_fields)
+                    
+                    trend_reason = ""
+                    try:
+                        if prev_row is None:
+                            prev_row = self.database.fetch_one(
+                                """SELECT sniper_score, s_holder_score, s_chip_vacuum_score, s_ma_state_score, 
+                                          s_safety_margin_score, s_macd_weekly_score, s_low_volume_score,
+                                          s_golden_pit_score, s_ignition_score, s_top_list_score 
+                                   FROM t_sniper_daily 
+                                   WHERE ts_code = %s AND trade_date < %s 
+                                   ORDER BY trade_date DESC LIMIT 1""",
+                                (row['ts_code'], row['trade_date'])
+                            )
+                        if prev_row:
+                            prev_total = int(prev_row.get('sniper_score') or 0)
+                            curr_total = int(record.get('sniper_score') or 0)
+                            diff_score = curr_total - prev_total
+                            
+                            dimensions = {
+                                's_holder_score': "筹码结构与锁定",
+                                's_chip_vacuum_score': "上方筹码真空度",
+                                's_ma_state_score': "均线状态",
+                                's_safety_margin_score': "安全边际",
+                                's_macd_weekly_score': "MACD周线",
+                                's_low_volume_score': "极致地量",
+                                's_golden_pit_score': "黄金坑/骗线",
+                                's_ignition_score': "放量点火首阳",
+                                's_top_list_score': "龙虎榜/大宗",
+                            }
+                            diffs = {}
+                            for key, label in dimensions.items():
+                                prev_val = int(prev_row.get(key) or 0)
+                                curr_val = int(record.get(key) or 0)
+                                diffs[label] = curr_val - prev_val
+                                
+                            max_diff_label = None
+                            max_diff_val = -9999
+                            for label, val in diffs.items():
+                                if val > max_diff_val:
+                                    max_diff_val = val
+                                    max_diff_label = label
+                                    
+                            if max_diff_val > 0:
+                                trend_reason = f"{max_diff_label}大幅改善"
+                            elif max_diff_val < 0:
+                                min_diff_label = None
+                                min_diff_val = 9999
+                                for label, val in diffs.items():
+                                    if val < min_diff_val:
+                                        min_diff_val = val
+                                        min_diff_label = label
+                                if min_diff_val < 0:
+                                    trend_reason = f"{min_diff_label}有所退化"
+                                else:
+                                    trend_reason = "各项指标维持稳定"
+                            else:
+                                trend_reason = "指标相比昨日无明显变化"
+                    except Exception as e:
+                        logging.getLogger(__name__).warning("Failed to compute sniper trend_reason: %s", e)
+                        
+                    record['trend_reason'] = trend_reason or "首日建立指标底座"
+                    
+                    for f in expected_fields:
+                        if f not in record:
+                            record[f] = None
+                            
+                    payload_row = tuple(record.get(f) for f in expected_fields)
+                    prev_row = record
+                    payload.append(payload_row)
+                    strategy_records.append(record)
+
+            inserted = self.database.upsert_many(
+                't_sniper_daily',
+                expected_fields,
+                payload,
+                ['ts_code', 'trade_date'],
+            )
+            total_inserted += inserted
+            self._inc_stat('rows_upserted_sniper', inserted)
+            chunk_nulls = self._validate_records(expected_fields, strategy_records, inserted)['null_fields']
+            for column, count in chunk_nulls.items():
+                aggregate_nulls[column] = aggregate_nulls.get(column, 0) + int(count)
+                
+        return {
+            'rows': total_inserted,
+            'expected_fields': expected_fields,
+            'missing_fields': [],
+            'null_fields': aggregate_nulls,
+        }
 
 # ---------------------------------------------------------------------------
+
 # Module-level summary printer  (imported and called by job scripts)
 # ---------------------------------------------------------------------------
 

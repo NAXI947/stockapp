@@ -4,10 +4,10 @@ const EXPORT_MODES = {
     strategyName: '阻力最小爆发模型',
     strategyVersion: '1.2',
   },
-  ambush: {
-    filename: 'picks_ambush',
-    strategyName: '预期埋伏池',
-    strategyVersion: '1.2',
+  sniper: {
+    filename: 'picks_sniper',
+    strategyName: '极简狙击手评分',
+    strategyVersion: '1.3',
   },
 }
 
@@ -82,11 +82,10 @@ export function buildPicksCsv({
     getStrategyFieldLabel('trade_date'),
   ]
 
-  const ambushHeaders = mode === 'ambush'
+  const sniperHeaders = mode === 'sniper'
     ? [
-        getStrategyFieldLabel('expected_logic'),
-        getStrategyFieldLabel('ambush_add_date'),
-        getStrategyFieldLabel('is_action_triggered'),
+        '得分变动',
+        '昨日回溯异动归因',
       ]
     : []
 
@@ -113,17 +112,16 @@ export function buildPicksCsv({
       stock.trade_date || tradeDate || '',
     ]
 
-    if (mode !== 'ambush') return baseRow
+    if (mode !== 'sniper') return baseRow
     return [
       ...baseRow,
-      stock.expected_logic || '',
-      stock.ambush_add_date || '',
-      yesNo(stock.is_action_triggered),
+      stock.score_change !== null && stock.score_change !== undefined ? (stock.score_change > 0 ? `+${stock.score_change}` : stock.score_change) : '0',
+      stock.trend_reason || '首日建立指标底座',
     ]
   })
 
   return [
-    [...baseHeaders, ...ambushHeaders].map(escapeCSV).join(','),
+    [...baseHeaders, ...sniperHeaders].map(escapeCSV).join(','),
     ...rowsData.map(row => row.map(escapeCSV).join(',')),
   ].join('\n')
 }

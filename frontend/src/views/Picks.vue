@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="mb-6 flex items-start justify-between">
       <div>
-        <h1 class="text-xl font-bold text-gray-900">策略选股 v1.2</h1>
+        <h1 class="text-xl font-bold text-gray-900">策略选股 v1.3</h1>
         <p class="text-sm text-gray-500 mt-1">
           最新交易日：{{ tradeDate || '-' }}
           <span class="ml-2 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
@@ -17,9 +17,9 @@
           </span>
           <span
             v-else
-            class="ml-2 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded"
+            class="ml-2 text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded"
           >
-            导出当前埋伏池数据
+            显示全量评分与昨日回溯
           </span>
         </p>
       </div>
@@ -52,11 +52,11 @@
         🔥 爆发右侧
       </button>
       <button
-        @click="switchMode('ambush')"
-        :class="mode === 'ambush' ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-700'"
+        @click="switchMode('sniper')"
+        :class="mode === 'sniper' ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'"
         class="px-4 py-2 rounded-lg transition-colors"
       >
-        🥷 预期埋伏
+        🎯 极简狙击手
       </button>
     </div>
     
@@ -94,19 +94,19 @@
       </div>
     </div>
 
-    <!-- 策略说明（预期埋伏模式） -->
-    <div v-else class="mb-4 bg-emerald-50 border border-emerald-100 rounded-lg p-3 text-sm text-emerald-800">
+    <!-- 策略说明（极简狙击手模式） -->
+    <div v-else class="mb-4 bg-purple-50 border border-purple-100 rounded-lg p-3 text-sm text-purple-800">
       <div class="flex items-center space-x-2 mb-2">
-        <span class="font-medium">埋伏池规则 v1.2：</span>
-        <span class="text-xs bg-emerald-100 px-2 py-0.5 rounded">手工池 + 动态异动跟踪</span>
+        <span class="font-medium">🎯 极简狙击手：</span>
+        <span class="text-xs bg-purple-100 px-2 py-0.5 rounded">跟踪评分异动与归因</span>
       </div>
       <div class="grid grid-cols-3 gap-2 text-xs">
-        <div>✓ 仅显示监控中股票</div>
-        <div>✓ 保留埋伏预期逻辑</div>
-        <div>✓ 跟踪筹码真空度</div>
-        <div>✓ 跟踪安全边际</div>
-        <div>✓ 跟踪量能活跃</div>
-        <div>✓ 量能或K线达标标记异动</div>
+        <div>✓ 观察所有选股目标</div>
+        <div>✓ 对比昨日总分变化</div>
+        <div>✓ 自动抓取最大分差项</div>
+        <div>✓ 归纳趋势异动原因</div>
+        <div>✓ 辅助盘后极简决策</div>
+        <div>✓ 自动追踪非ST标的</div>
       </div>
     </div>
     
@@ -142,8 +142,8 @@
     <Empty
       v-else-if="!searchQuery && !filteredPicks.length"
       icon="🎯"
-      title="暂无 95 分以上股票"
-      description="当前交易日没有满足前端展示门槛的股票，导出仍可获取全量数据"
+      title="暂无股票数据"
+      description="当前交易日没有满足条件的股票，请检查数据更新状态"
     />
     
     <!-- 数据表格 -->
@@ -165,7 +165,7 @@
                   </span>
                 </div>
               </th>
-              <th v-if="mode !== 'ambush'" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th v-if="mode !== 'sniper'" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 准入
               </th>
               <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -225,10 +225,10 @@
                 <template v-else-if="col.key === 'winner_rate'">
                   <span class="text-sm text-gray-600">{{ formatNumber(stock.winner_rate) }}%</span>
                 </template>
-                <!-- 策略分 -->
+                <!-- 策略分 / 当前得分 -->
                 <template v-else-if="col.key === 'final_score'">
                   <span class="text-sm font-mono font-bold" :class="getScoreClass(stock.final_score)">
-                    {{ stock.final_score }}
+                    {{ stock.final_score ?? '-' }}
                   </span>
                 </template>
                 <!-- 标签 -->
@@ -264,7 +264,7 @@
                     </span>
                   </div>
                 </template>
-                <!-- 量能活跃（埋伏模式用文字映射，正常模式用勾叉） -->
+                <!-- 量能活跃（正常模式用勾叉） -->
                 <template v-else-if="col.key === 'liquidity_base'">
                   <span
                     class="text-sm font-mono"
@@ -273,21 +273,60 @@
                     {{ stock.is_action_triggered ? '🔥 异动' : '静默' }}
                   </span>
                 </template>
-                <!-- 筹码真空度 / 安全边际（埋伏模式显示原始数值） -->
-                <template v-else-if="['chip_vacuum', 'safety_margin'].includes(col.key)">
-                  <span class="text-sm font-mono text-gray-700">
-                    {{ stock[col.key] ?? '--' }}
+                <!-- 得分变动 -->
+                <template v-else-if="col.key === 'score_change'">
+                  <span
+                    v-if="stock.score_change !== null && stock.score_change !== undefined"
+                    class="text-sm font-mono font-bold"
+                    :class="stock.score_change > 0 ? 'text-emerald-600' : (stock.score_change < 0 ? 'text-red-500' : 'text-gray-500')"
+                  >
+                    {{ stock.score_change > 0 ? `+${stock.score_change}` : stock.score_change }}
                   </span>
+                  <span v-else class="text-sm text-gray-400">-</span>
                 </template>
-                <!-- 预期逻辑 -->
-                <template v-else-if="col.key === 'expected_logic'">
-                  <span class="text-sm text-gray-600 truncate max-w-[200px] inline-block" :title="stock.expected_logic">
-                    {{ stock.expected_logic || '-' }}
+                <!-- 评分趋势 SVG 折线图 -->
+                <template v-else-if="col.key === 'score_trend'">
+                  <div class="flex items-center space-x-1.5" v-if="stock.score_trend && stock.score_trend.length">
+                    <span class="text-xs text-gray-400 font-mono">{{ stock.score_trend[0] }}</span>
+                    <svg class="w-16 h-6 overflow-visible" viewBox="0 0 100 30">
+                      <!-- 渐变背景 -->
+                      <defs>
+                        <linearGradient :id="`sparkline-grad-${stock.ts_code}`" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.3" />
+                          <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.0" />
+                        </linearGradient>
+                      </defs>
+                      <!-- 填充区域 -->
+                      <path
+                        :d="getSparklineAreaPath(stock.score_trend)"
+                        :fill="`url(#sparkline-grad-${stock.ts_code})`"
+                      />
+                      <!-- 折线 -->
+                      <path
+                        :d="getSparklinePath(stock.score_trend)"
+                        fill="none"
+                        stroke="#8b5cf6"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <!-- 终点圆点 -->
+                      <circle
+                        :cx="100"
+                        :cy="getSparklinePointY(stock.score_trend[stock.score_trend.length - 1], stock.score_trend)"
+                        r="3"
+                        fill="#8b5cf6"
+                      />
+                    </svg>
+                    <span class="text-xs text-gray-700 font-mono font-semibold">{{ stock.score_trend[stock.score_trend.length - 1] }}</span>
+                  </div>
+                  <span v-else class="text-xs text-gray-400">-</span>
+                </template>
+                <!-- 异动归因 -->
+                <template v-else-if="col.key === 'trend_reason'">
+                  <span class="text-sm text-gray-700 font-medium" :title="stock.trend_reason">
+                    {{ stock.trend_reason || '首日建立指标底座' }}
                   </span>
-                </template>
-                <!-- 埋伏日期 -->
-                <template v-else-if="col.key === 'ambush_add_date'">
-                  <span class="text-sm text-gray-500 font-mono">{{ stock.ambush_add_date || '-' }}</span>
                 </template>
                 <!-- 通用数值列 -->
                 <template v-else>
@@ -295,7 +334,7 @@
                 </template>
               </td>
               <!-- 准入状态（仅正常模式） -->
-              <td v-if="mode !== 'ambush'" class="px-3 py-3 whitespace-nowrap">
+              <td v-if="mode !== 'sniper'" class="px-3 py-3 whitespace-nowrap">
                 <div
                   class="flex items-center space-x-1"
                   :title="stock.reject_reason || '准入通过'"
@@ -336,25 +375,6 @@
                   >
                     📝
                   </button>
-                  <!-- 埋伏池模式下的操作按钮 -->
-                  <template v-if="mode === 'ambush'">
-                    <button
-                      v-if="isInAmbushPool(stock.ts_code)"
-                      @click.stop="removeFromAmbush(stock)"
-                      class="text-sm px-2 py-1 rounded transition-colors bg-red-100 text-red-600 hover:bg-red-200"
-                      title="逻辑证伪/移出"
-                    >
-                      ❌
-                    </button>
-                    <button
-                      v-else
-                      @click.stop="addToAmbushPool(stock)"
-                      class="text-sm px-2 py-1 rounded transition-colors bg-emerald-100 text-emerald-600 hover:bg-emerald-200"
-                      title="添加到埋伏池"
-                    >
-                      ➕
-                    </button>
-                  </template>
                 </div>
               </td>
             </tr>
@@ -393,7 +413,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { picksApi, stockApi } from '@/api'
-import { ambushApi } from '@/api/ambush'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useReviewStore } from '@/stores/review'
 import Loading from '@/components/Loading.vue'
@@ -420,20 +439,24 @@ const sortKey = ref('final_score')
 const sortOrder = ref('desc')
 const lastUpdated = ref(null)
 const searchQuery = ref('')
-const searchResults = ref([]) // 存储API搜索结果
+const searchResults = ref([])
 const isSearching = ref(false)
-const mode = ref('normal') // 'normal' 或 'ambush'
+const mode = ref('normal')
 
 const columns = computed(() => {
-  if (mode.value === 'ambush') {
+  if (mode.value === 'sniper') {
     return [
       { key: 'name', title: '股票' },
       { key: 'industry', title: '行业' },
-      { key: 'chip_vacuum', title: '筹码真空度' },
-      { key: 'safety_margin', title: '安全边际' },
-      { key: 'expected_logic', title: '预期逻辑' },
-      { key: 'liquidity_base', title: '量能活跃' },
-      { key: 'ambush_add_date', title: '埋伏日期' }
+      { key: 'pct_chg', title: getStrategyFieldLabel('pct_chg') },
+      { key: 'turnover_rate', title: getStrategyFieldLabel('turnover_rate') },
+      { key: 'volume_ratio', title: getStrategyFieldLabel('volume_ratio') },
+      { key: 'winner_rate', title: getStrategyFieldLabel('winner_rate') },
+      { key: 'final_score', title: '当前得分' },
+      { key: 'score_change', title: '得分变动' },
+      { key: 'score_trend', title: '7天评分趋势' },
+      { key: 'trend_reason', title: '异动归因' },
+      { key: 'top_list_3d', title: '标签' }
     ]
   }
   return [
@@ -449,8 +472,11 @@ const columns = computed(() => {
 })
 
 const visiblePicks = computed(() => {
-  // 埋伏池模式不做分数过滤，正常模式仅显示 95 分及以上
-  if (mode.value === 'ambush') return picks.value
+  // 极简狙击手模式只显示分数排名前10的股票，正常模式仅显示 95 分及以上
+  if (mode.value === 'sniper') {
+    const sorted = [...picks.value].sort((a, b) => (b.final_score ?? 0) - (a.final_score ?? 0))
+    return sorted.slice(0, 10)
+  }
   return picks.value.filter(stock => (stock.final_score || 0) >= 95)
 })
 
@@ -558,15 +584,15 @@ const filteredPassedCount = computed(() => {
 })
 
 const modeLabel = computed(() => {
-  return mode.value === 'ambush' ? '预期埋伏池' : '阻力最小爆发模型'
+  return mode.value === 'sniper' ? '极简狙击手评分' : '阻力最小爆发模型'
 })
 
 const emptyState = computed(() => {
-  if (mode.value === 'ambush') {
+  if (mode.value === 'sniper') {
     return {
-      icon: '🥷',
-      title: '暂无埋伏池数据',
-      description: '可在爆发右侧列表中选择股票加入埋伏池',
+      icon: '🎯',
+      title: '暂无狙击手评分数据',
+      description: '请检查后端数据更新状态',
     }
   }
   return {
@@ -575,13 +601,8 @@ const emptyState = computed(() => {
     description: '请检查后端数据更新状态',
   }
 })
-
 function isInWatchlist(tsCode) {
   return watchlistStore.isInWatchlist(tsCode)
-}
-
-function isInAmbushPool(tsCode) {
-  return picks.value.some(stock => stock.ts_code === tsCode)
 }
 
 function toggleWatchlist(stock) {
@@ -610,11 +631,46 @@ function sortBy(key) {
   }
 }
 
+// 确保在狙击手模式下有得分变动排序
+watch(mode, (newMode) => {
+  if (newMode === 'sniper') {
+    sortKey.value = 'final_score'
+    sortOrder.value = 'desc'
+  }
+})
+
 function getScoreClass(score) {
   if (score >= 70) return 'text-green-600'
   if (score >= 50) return 'text-yellow-600'
   if (score > 0) return 'text-gray-600'
   return 'text-gray-400'
+}
+
+// Sparkline SVG path helpers
+function getSparklinePointY(val, trend) {
+  const min = Math.min(...trend, 0)
+  const max = Math.max(...trend, 100)
+  const range = max - min || 1
+  // Scale to SVG height of 30, with 3px padding top and bottom
+  return 27 - ((val - min) / range) * 24
+}
+
+function getSparklinePath(trend) {
+  if (!trend || trend.length < 2) return ''
+  const points = trend.map((val, idx) => {
+    const x = (idx / (trend.length - 1)) * 100
+    const y = getSparklinePointY(val, trend)
+    return `${x},${y}`
+  })
+  return `M ${points.join(' L ')}`
+}
+
+function getSparklineAreaPath(trend) {
+  if (!trend || trend.length < 2) return ''
+  const linePath = getSparklinePath(trend)
+  const lastY = getSparklinePointY(trend[trend.length - 1], trend)
+  const firstY = getSparklinePointY(trend[0], trend)
+  return `${linePath} L 100,30 L 0,30 Z`
 }
 
 function formatPercent(val) {
@@ -623,6 +679,7 @@ function formatPercent(val) {
   return `${sign}${val.toFixed(2)}%`
 }
 
+// v1.3: 统一格式化数值
 function formatNumber(val) {
   if (val == null) return '-'
   return val.toFixed(2)
@@ -647,7 +704,11 @@ function getConceptOverflow(stock) {
 }
 
 function goToDetail(tsCode) {
-  router.push(`/stock/${tsCode}`)
+  if (mode.value === 'sniper') {
+    router.push(`/stock/${tsCode}?is_sniper=true`)
+  } else {
+    router.push(`/stock/${tsCode}`)
+  }
 }
 
 function goToReview(stock) {
@@ -667,17 +728,10 @@ async function fetchPicks(forceRefresh = false) {
   errorDetails.value = ''
   
   try {
-    let data
-    if (mode.value === 'ambush') {
-      const params = { is_ambush: true }
-      data = forceRefresh
-        ? await picksApi.refreshPicks(params)
-        : await picksApi.getPicks(params)
-    } else {
-      data = forceRefresh 
-        ? await picksApi.refreshPicks()
-        : await picksApi.getPicks()
-    }
+    const params = mode.value === 'sniper' ? { is_sniper: true } : {}
+    const data = forceRefresh 
+      ? await picksApi.refreshPicks(params)
+      : await picksApi.getPicks(params)
     picks.value = data || []
     if (data && data.length > 0) {
       tradeDate.value = data[0].trade_date || ''
@@ -698,50 +752,7 @@ onMounted(fetchPicks)
 function switchMode(newMode) {
   if (mode.value === newMode) return
   mode.value = newMode
-  // 切换模式后重新获取数据
   fetchPicks()
-}
-
-// 一键剔除逻辑
-async function removeFromAmbush(stock) {
-  if (!confirm(`确认将 ${stock.name} 从埋伏池移出？\n原因：逻辑证伪`)) {
-    return
-  }
-  
-  try {
-    await ambushApi.removeFromAmbushPool(stock.ts_code)
-    // 刷新列表
-    await fetchPicks(true)
-    alert('已移出埋伏池')
-  } catch (err) {
-    alert(`移出失败: ${err.message}`)
-  }
-}
-
-// 添加到埋伏池
-async function addToAmbushPool(stock) {
-  // 用概念题材作为默认预填值，降低填写负担
-  const defaultLogic = stock.concept_text ? `概念题材：${stock.concept_text}` : ''
-  const expectedLogic = prompt(
-    `📝 ${stock.name}（${stock.ts_code}）\n请输入埋伏预期逻辑（必填）：`,
-    defaultLogic
-  )
-  if (expectedLogic === null) return // 用户点取消
-
-  // 前端必填校验，与后端 min_length=1 对齐
-  if (!expectedLogic.trim()) {
-    alert('预期逻辑不能为空，请填写后再添加。')
-    return
-  }
-
-  try {
-    await ambushApi.addToAmbushPool(stock.ts_code, expectedLogic.trim())
-    // 刷新列表
-    await fetchPicks(true)
-    alert(`✅ 已将 ${stock.name} 添加到埋伏池`)
-  } catch (err) {
-    alert(`添加失败: ${err.message}`)
-  }
 }
 
 // ========== 导出功能 ==========

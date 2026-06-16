@@ -76,10 +76,99 @@ class FakeDatabase:
                 {"trade_date": "20260310", "open": 11.0, "close": 12.0, "low": 10.5, "high": 12.2, "pct_chg": 1.9, "vol": 1000},
                 {"trade_date": "20260309", "open": 10.0, "close": 11.0, "low": 9.8, "high": 11.1, "pct_chg": 1.2, "vol": 900},
             ]
-        if "SELECT trade_date, final_score, pct_chg, winner_rate, float_risk_7d, ma5, ma20, ma60, turnover_rate, volume_ratio FROM t_strategy_daily" in compact_sql:
-            if params and params[0] == "404.SZ":
-                return []
-            return [{"trade_date": "20260310", "final_score": 70, "pct_chg": 3.21, "winner_rate": 80.5, "float_risk_7d": 1, "ma5": 10.1, "ma20": 9.8, "ma60": 9.5, "turnover_rate": 4.2, "volume_ratio": 1.3}]
+        if "SELECT DISTINCT trade_date FROM t_strategy_daily WHERE trade_date <= ?" in compact_sql:
+            return [{"trade_date": "20260310"}]
+        if "FROM t_strategy_daily WHERE trade_date IN (" in compact_sql:
+            return [{"ts_code": "000001.SZ", "trade_date": "20260310", "final_score": 65}]
+        if "FROM t_strategy_daily" in compact_sql:
+            if "WHERE ts_code = ?" in compact_sql:
+                if params and params[0] == "404.SZ":
+                    return []
+                # Check if this is the 7-day trend query or single-day query
+                if "LIMIT 7" in compact_sql:
+                    return [{
+                        "trade_date": "20260310",
+                        "final_score": 70,
+                        "pct_chg": 3.21,
+                        "winner_rate": 80.5,
+                        "float_risk_7d": 1,
+                        "ma5": 10.1,
+                        "ma10": 10.0,
+                        "ma20": 9.8,
+                        "ma60": 9.5,
+                        "turnover_rate": 4.2,
+                        "volume_ratio": 1.3,
+                        "upper_space": 12.5,
+                        "vol_score": 85.0,
+                        "trend_baseline": 1,
+                        "chip_vacuum": 1,
+                        "kline_body": 1,
+                        "liquidity_base": 1,
+                        "safety_margin": 1,
+                        "top_list_3d": 0,
+                        "st_risk": 0,
+                        "rejected": 0,
+                        "reject_reason": "",
+                        "limit_up_20d": 0,
+                        "is_limit_up": 0,
+                        "bull_trend": 0,
+                    }]
+                return [{
+                    "trade_date": "20260310",
+                    "final_score": 70,
+                    "pct_chg": 3.21,
+                    "winner_rate": 80.5,
+                    "float_risk_7d": 1,
+                    "ma5": 10.1,
+                    "ma10": 10.0,
+                    "ma20": 9.8,
+                    "ma60": 9.5,
+                    "turnover_rate": 4.2,
+                    "volume_ratio": 1.3,
+                    "upper_space": 12.5,
+                    "vol_score": 85.0,
+                    "trend_baseline": 1,
+                    "chip_vacuum": 1,
+                    "kline_body": 1,
+                    "liquidity_base": 1,
+                    "safety_margin": 1,
+                    "top_list_3d": 0,
+                    "st_risk": 0,
+                    "rejected": 0,
+                    "reject_reason": "",
+                    "limit_up_20d": 0,
+                    "is_limit_up": 0,
+                    "bull_trend": 0,
+                }]
+        if "FROM t_concept_detail" in compact_sql:
+            return [{"ts_code": "000001.SZ", "concept_name": "银行改革"}]
+        if "c.cost_50, c.cost_85, c.winner_rate, s.float_risk_7d" in compact_sql:
+            return [{
+                "cost_50": 10.5,
+                "cost_85": 11.8,
+                "winner_rate": 76.2,
+                "float_risk_7d": 1,
+                "limit_up_20d": 0,
+                "is_limit_up": 0,
+                "bull_trend": 0,
+                "final_score": 70,
+                "pct_chg": 3.21,
+                "turnover_rate": 4.2,
+                "volume_ratio": 1.3,
+                "upper_space": 12.5,
+                "vol_score": 85.0,
+                "trend_baseline": 1,
+                "chip_vacuum": 1,
+                "kline_body": 1,
+                "liquidity_base": 1,
+                "safety_margin": 1,
+                "top_list_3d": 0,
+                "st_risk": 0,
+                "rejected": 0,
+                "reject_reason": "",
+            }]
+        if "FROM t_stock_basic WHERE ts_code = ?" in compact_sql:
+            return [{"name": "平安银行", "industry": "银行"}]
         raise AssertionError(f"unexpected sql: {compact_sql} params={params}")
 
 
@@ -111,8 +200,8 @@ class CoreApiTest(unittest.TestCase):
         with api_client() as client:
             response = client.get("/api/v1/kline/000001.SZ", params={"limit": 2})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["data"][0][0], "20260309")
-        self.assertEqual(response.json()["data"][1][0], "20260310")
+        self.assertEqual(response.json()["data"][0]["trade_date"], "20260309")
+        self.assertEqual(response.json()["data"][1]["trade_date"], "20260310")
 
     def test_get_detail_returns_payload(self) -> None:
         with api_client() as client:

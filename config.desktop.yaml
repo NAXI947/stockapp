@@ -6,7 +6,7 @@ database:
   pool_size: 5
   pool_timeout: 30
 tushare:
-  token: ''
+  token: 206fea9425142a47a036805d1473d3e55b3e71f908a720f2b1d7677fc8b6
   base_url: http://lianghua.nanyangqiankun.top
   use_mock: false
   timeout_seconds: 60

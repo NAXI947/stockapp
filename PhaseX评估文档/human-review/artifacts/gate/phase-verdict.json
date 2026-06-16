@@ -1,0 +1,260 @@
+{
+  "acceptance_rows": [
+    {
+      "key": "phase3_mainline_truth_present",
+      "label": "Phase-3 主线结论已被 P4 显式消费",
+      "status": "PASS",
+      "why": "Phase-4 consumed explicit Phase-3 mainline truth"
+    },
+    {
+      "key": "acceptance_planning_trace_complete",
+      "label": "测试规划与决策覆盖完整",
+      "status": "BLOCKED",
+      "why": "acceptance planning still leaves trace or decision-coverage gaps that weaken closure"
+    },
+    {
+      "key": "mandatory_execution_evidence_passed",
+      "label": "功能/数据保真主证据已通过",
+      "status": "BLOCKED",
+      "why": "mandatory functional or data-fidelity evidence still contains blocking failures"
+    },
+    {
+      "key": "nonfunctional_gaps_explicit",
+      "label": "非功能 review-bound 与签核缺口显式外露",
+      "status": "BLOCKED",
+      "why": "non-functional evidence still contains structural blockers or hidden unresolved truth"
+    },
+    {
+      "key": "downstream_decision_boundary_clear",
+      "label": "下游不需要猜测收口边界",
+      "status": "BLOCKED",
+      "why": "upstream claim ceiling is `implementation-in-progress`, so P4 cannot promote the package to testing-validation-complete"
+    }
+  ],
+  "blockers_count": 4,
+  "claim_ceiling_report": {
+    "artifact_kind": "phase4-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "testing-validation-return-required",
+    "inputs": {
+      "blocking_count": 60,
+      "closure_decision": "return",
+      "review_bound_count": 0,
+      "signoff_not_ready_count": 0,
+      "signoff_pending_count": 0,
+      "upstream_claim_ceiling_state": "implementation-in-progress"
+    },
+    "policy": "Phase-4 may confirm or lower upstream ceilings; it must not upgrade review-bound or unknown evidence.",
+    "reasons": [
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-3 claim ceiling is `implementation-in-progress` and cannot be upgraded by Phase-4.",
+        "reason": "upstream_claim_ceiling_blocks_ready",
+        "signal": "phase3_claim_ceiling"
+      },
+      {
+        "ceiling": "testing-validation-return-required",
+        "detail": "Phase-4 closure contains blocking or return-required evidence.",
+        "reason": "phase4_closure_return_required",
+        "signal": "phase4_closure"
+      }
+    ],
+    "requested_formal_state": "testing-validation-return-required",
+    "resolved_formal_state": "testing-validation-return-required",
+    "upstream_claim_ceiling_report": {
+      "artifact_kind": "phase3-claim-ceiling-report.v1",
+      "blocking_delivery_ready": true,
+      "claim_ceiling": "implementation-in-progress",
+      "inputs": {
+        "anti_cheat_negative_test_count": 7,
+        "artifact_quality_state": "pass",
+        "empty_or_audit_shaped_service_count": 0,
+        "failure_count": 6,
+        "implementation_depth_state": "unknown",
+        "same_source_test_risk_count": 0,
+        "trace_quality": {
+          "abuse_count": 0,
+          "blocking_gap_count": 30,
+          "chain_coverage_state": "unresolved",
+          "confirmed_count": 0,
+          "review_count": 0,
+          "suggested_count": 0,
+          "trace_db_indexed": false,
+          "trace_db_present": false,
+          "trace_db_projection_status": "no-confirmed-rows",
+          "trace_registry_present": true,
+          "unresolved_count": 30
+        },
+        "warning_count": 7
+      },
+      "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+      "present": true,
+      "reasons": [
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+          "reason": "implementation_depth_unknown",
+          "signal": "implementation_depth_state"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+          "reason": "trace_unresolved",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-ready",
+          "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+          "reason": "trace_identity_source_missing",
+          "signal": "trace_quality"
+        },
+        {
+          "ceiling": "implementation-in-progress",
+          "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+          "reason": "code_review_blocking_findings",
+          "signal": "code_review"
+        }
+      ],
+      "requested_formal_state": "implementation-in-progress",
+      "resolved_formal_state": "implementation-in-progress",
+      "source": "phase3-delivery-gate.json"
+    }
+  },
+  "closure_decision": "return",
+  "data_fidelity_non_pass_count": 30,
+  "dimension_scores": [
+    {
+      "key": "planning_and_traceability",
+      "label": "测试规划与追踪完整度",
+      "notes": [
+        "trace_mapping_complete=true",
+        "functional_api_mapping_complete=true",
+        "decision_alignment_complete=false",
+        "high_priority_unmapped_count=0"
+      ],
+      "score": 4,
+      "weight": 25
+    },
+    {
+      "key": "execution_truth",
+      "label": "执行证据真实性",
+      "notes": [
+        "functional_non_pass_count=30",
+        "data_fidelity_non_pass_count=30",
+        "functional_conditional_pass_count=0",
+        "data_fidelity_conditional_pass_count=0"
+      ],
+      "score": 3,
+      "weight": 25
+    },
+    {
+      "key": "closure_boundary_quality",
+      "label": "收口边界质量",
+      "notes": [
+        "closure_decision=return",
+        "upstream_claim_ceiling_state=implementation-in-progress",
+        "blocking_count=60",
+        "signoff_pending_count=0",
+        "signoff_not_ready_count=0"
+      ],
+      "score": 1,
+      "weight": 20
+    },
+    {
+      "key": "review_bound_honesty",
+      "label": "review-bound / signoff 诚实度",
+      "notes": [
+        "mock_dependency_present=false",
+        "review_pending=false",
+        "review_bound_count=0",
+        "signoff_pending_count=0",
+        "signoff_not_ready_count=0"
+      ],
+      "score": 5,
+      "weight": 15
+    },
+    {
+      "key": "downstream_decision_readiness",
+      "label": "下游决策可用度",
+      "notes": [
+        "closure_decision=return",
+        "review_bound_count=0",
+        "signoff_pending_count=0",
+        "signoff_not_ready_count=0"
+      ],
+      "score": 4,
+      "weight": 15
+    }
+  ],
+  "functional_non_pass_count": 30,
+  "phase": "P4",
+  "phase3_mainline_summary_present": true,
+  "recommended_formal_state": "testing-validation-return-required",
+  "review_bound_items_count": 0,
+  "signoff_not_ready_count": 0,
+  "signoff_pending_count": 0,
+  "total_score": 66.0,
+  "upstream_claim_ceiling_allows_validation": false,
+  "upstream_claim_ceiling_blocks_ready": true,
+  "upstream_claim_ceiling_blocks_validation": true,
+  "upstream_claim_ceiling_report": {
+    "artifact_kind": "phase3-claim-ceiling-report.v1",
+    "blocking_delivery_ready": true,
+    "claim_ceiling": "implementation-in-progress",
+    "inputs": {
+      "anti_cheat_negative_test_count": 7,
+      "artifact_quality_state": "pass",
+      "empty_or_audit_shaped_service_count": 0,
+      "failure_count": 6,
+      "implementation_depth_state": "unknown",
+      "same_source_test_risk_count": 0,
+      "trace_quality": {
+        "abuse_count": 0,
+        "blocking_gap_count": 30,
+        "chain_coverage_state": "unresolved",
+        "confirmed_count": 0,
+        "review_count": 0,
+        "suggested_count": 0,
+        "trace_db_indexed": false,
+        "trace_db_present": false,
+        "trace_db_projection_status": "no-confirmed-rows",
+        "trace_registry_present": true,
+        "unresolved_count": 30
+      },
+      "warning_count": 7
+    },
+    "policy": "Formal state is capped by the weakest unresolved evidence. Human review may confirm or lower this ceiling, but must not upgrade it.",
+    "present": true,
+    "reasons": [
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Implementation semantic depth is unknown; runtime green signals cannot be promoted to delivery-ready.",
+        "reason": "implementation_depth_unknown",
+        "signal": "implementation_depth_state"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "Unresolved trace subjects remain; formal state cannot pass implementation-in-progress.",
+        "reason": "trace_unresolved",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-ready",
+        "detail": "Trace registry evidence is present, but the project trace identity source `.trace/trace.db` is missing.",
+        "reason": "trace_identity_source_missing",
+        "signal": "trace_quality"
+      },
+      {
+        "ceiling": "implementation-in-progress",
+        "detail": "High or critical code-review findings cannot be overridden by downstream delivery gates.",
+        "reason": "code_review_blocking_findings",
+        "signal": "code_review"
+      }
+    ],
+    "requested_formal_state": "implementation-in-progress",
+    "resolved_formal_state": "implementation-in-progress",
+    "source": "phase3-delivery-gate.json"
+  },
+  "upstream_claim_ceiling_state": "implementation-in-progress",
+  "verdict": "RETURN-REMEDIATE"
+}

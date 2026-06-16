@@ -26,18 +26,21 @@ class VacuumStrategyTest(unittest.TestCase):
                     "amount": 10000000,
                     "pct_chg": 1.0,
                     "adj_factor": 1.0,
-                    "turnover_rate": 1.0,  # force liquidity_base=False
-                    "volume_ratio": 1.0,
+                    "turnover_rate": 0.01,  # force liquidity_base=False
+                    "volume_ratio": 0.01,
                     "winner_rate": 75.0,
                 }
             )
+        series[-1]["close"] = 5.0
 
         result = strategy.calculate(series, len(series) - 1, float_risk=0, top_list_data=[], stock_name="平安银行")
 
         self.assertIsNotNone(result)
-        self.assertEqual(result.score, 0)
+        self.assertEqual(result.score, 8)
         self.assertEqual(result.extra_fields["rejected"], 1)
+        self.assertIn("ma10", strategy.expected_fields)
         self.assertIsNotNone(result.extra_fields["ma5"])
+        self.assertIsNotNone(result.extra_fields["ma10"])
         self.assertIsNotNone(result.extra_fields["ma20"])
         self.assertIsNotNone(result.extra_fields["ma60"])
 

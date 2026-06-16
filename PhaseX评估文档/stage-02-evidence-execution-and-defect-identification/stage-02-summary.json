@@ -1,0 +1,50 @@
+{
+  "artifacts": {
+    "critical_path_signoff_json": "stage-02-evidence-execution-and-defect-identification\\critical-path-signoff-record.json",
+    "defect_record_json": "stage-02-evidence-execution-and-defect-identification\\defect-record.json",
+    "evidence_index_json": "stage-02-evidence-execution-and-defect-identification\\test-evidence-index.json",
+    "execution_md": "stage-02-evidence-execution-and-defect-identification\\test-execution-evidence.md",
+    "external_evidence_json": "stage-02-evidence-execution-and-defect-identification\\external-evidence-consumption.json",
+    "results_json": "stage-02-evidence-execution-and-defect-identification\\test-execution-results.json",
+    "review_bound_record_json": "stage-02-evidence-execution-and-defect-identification\\review-bound-record.json",
+    "surface_audit_json": "stage-02-evidence-execution-and-defect-identification\\frontend-surface-audit.json"
+  },
+  "data_fidelity_conditional_pass_count": 0,
+  "data_fidelity_non_pass_count": 30,
+  "defect_count": 60,
+  "functional_conditional_pass_count": 0,
+  "functional_non_pass_count": 30,
+  "functional_pass_count": 0,
+  "generated_at": "2026-06-15T09:54:25.374111+00:00",
+  "output_dir": "D:\\python\\stockapp\\PhaseX评估文档\\stage-02-evidence-execution-and-defect-identification",
+  "phase3_full_targeted_evidence_present": false,
+  "phase3_full_targeted_evidence_status": "missing",
+  "phase3_full_targeted_failed_tests": [],
+  "phase3_mainline_backend_verification_present": false,
+  "phase3_mainline_summary_present": true,
+  "phase3_mainline_total_score": 38.0,
+  "phase3_mainline_verdict": "RETURN-REMEDIATE",
+  "phase3_root": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+  "review_bound_count": 0,
+  "runtime_environment_ledger_present": false,
+  "runtime_environment_missing_lane_count": 0,
+  "runtime_environment_missing_lanes": [],
+  "signoff_not_ready_count": 0,
+  "signoff_pending_count": 0,
+  "stage": "evidence-execution-and-defect-identification",
+  "status_counts": {
+    "data-fidelity": {
+      "blocked": 30
+    },
+    "functional": {
+      "blocked": 30
+    },
+    "overall": {
+      "blocked": 60
+    }
+  },
+  "title": "Phase-4 First Version",
+  "ui_review_non_pass_count": 0,
+  "version": "v1.3",
+  "visual_review_bound_count": 0
+}

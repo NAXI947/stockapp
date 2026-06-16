@@ -1,0 +1,38 @@
+{
+  "artifact_kind": "cross-phase-contamination-boundary-report.v1",
+  "boundary": "p3-to-p4",
+  "claim_ceiling": "claim-clean:contamination-boundary",
+  "classifications": [],
+  "findings": [],
+  "overall_status": "pass",
+  "policy": "This report detects configured contamination residues at phase handoff boundaries. It does not prove full semantic correctness.",
+  "source_fingerprint": {
+    "domain": "source-specific",
+    "domain_scores": {},
+    "explicit_source_domains": [],
+    "source_label": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+    "source_specific_signals": [
+      "acceptance_report_present",
+      "anti_cheat_negative_test_count",
+      "api_doc_assets_present",
+      "api_evidence_linkage_gate",
+      "auth_downgrade_findings",
+      "backend_interface_gate",
+      "backend_interface_signal_present",
+      "backend_layer_blocked_work_packages",
+      "backend_layer_blocking_layers",
+      "backend_layered_api_full_evidence_gate",
+      "backend_layered_api_gate",
+      "backend_layered_api_gate_present",
+      "backend_migration_gate",
+      "backend_packet_present",
+      "backend_packet_truth_present",
+      "backend_packet_truth_required",
+      "backend_persistence_gate",
+      "backend_persistence_truth_required",
+      "backend_service_persistence_roundtrip_gate",
+      "backend_unit_test_gate"
+    ]
+  },
+  "source_label": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3"
+}

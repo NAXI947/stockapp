@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-06-15T09:54:25.349332+00:00",
+  "lanes": {},
+  "phase3_root": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3",
+  "source_ledger_path": "",
+  "summary": {
+    "available_runtime_environments": [],
+    "ledger_present": false,
+    "missing_runtime_lanes": [],
+    "packet_count": 0,
+    "packets_missing_runtime": 0,
+    "packets_with_available_runtime": 0
+  }
+}

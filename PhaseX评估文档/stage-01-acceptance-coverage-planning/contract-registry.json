@@ -1,0 +1,334 @@
+{
+  "generated_at": "2026-06-15T09:54:25.349566+00:00",
+  "phase3_openapi_path": "D:\\python\\stockapp\\tmp\\local-artifacts\\stockapp\\phase-3\\openapi-final.yaml",
+  "rows": [
+    {
+      "api_id": "API-LISTAUDITRECORDS",
+      "method": "GET",
+      "operation_id": "ListAuditRecords",
+      "operation_token": "listauditrecords",
+      "owner": "audit-records",
+      "path": "/api/v1/audit-records",
+      "related_requirements": [
+        "P1-REQ-008",
+        "P1-AC-006"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-08",
+        "TEST-P2-CTR-08"
+      ],
+      "summary": "Expose list and query surfaces for Audit Record."
+    },
+    {
+      "api_id": "API-LISTCROSSMODULESUMMARIES",
+      "method": "GET",
+      "operation_id": "ListCrossModuleSummaries",
+      "operation_token": "listcrossmodulesummaries",
+      "owner": "cross-module-summaries",
+      "path": "/api/v1/cross-module-summaries",
+      "related_requirements": [
+        "P1-REQ-016"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-16",
+        "TEST-P2-CTR-16"
+      ],
+      "summary": "Expose cross-module read surfaces when multiple service boundaries participate in one workflow."
+    },
+    {
+      "api_id": "API-LISTNOCOREBUSINESSOBJECTSEXTRACTEDFROMSOURCEBRIEF",
+      "method": "GET",
+      "operation_id": "ListNoCoreBusinessObjectsExtractedFromSourceBrief",
+      "operation_token": "listnocorebusinessobjectsextractedfromsourcebrief",
+      "owner": "no-core-business-objects-extracted-from-source-briefs",
+      "path": "/api/v1/no-core-business-objects-extracted-from-source-briefs",
+      "related_requirements": [
+        "P1-EP-002",
+        "P1-UC-001",
+        "P1-UC-004",
+        "P1-REQ-003",
+        "P1-REQ-006",
+        "P1-REQ-009",
+        "P1-REQ-012",
+        "P1-REQ-015",
+        "P1-REQ-018",
+        "P1-AC-003",
+        "P1-AC-006",
+        "P1-AC-009",
+        "P1-AC-012",
+        "P1-EP-003",
+        "P1-UC-002",
+        "P1-REQ-001",
+        "P1-REQ-004",
+        "P1-REQ-007",
+        "P1-REQ-010",
+        "P1-REQ-013",
+        "P1-REQ-016",
+        "P1-AC-001",
+        "P1-AC-004",
+        "P1-AC-007",
+        "P1-AC-010",
+        "P1-REQ-002",
+        "P1-AC-008",
+        "P1-REQ-011",
+        "P1-US-001",
+        "P1-AC-002",
+        "P1-REQ-008"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-RP-02",
+        "TEST-DF-P2-RP-03",
+        "TEST-DF-SCN-SCENARIO-02",
+        "TEST-DF-SCN-SCENARIO-03",
+        "TEST-DF-SCN-SCENARIO-04",
+        "TEST-DF-SCN-SCENARIO-08",
+        "TEST-DF-SCN-SCENARIO-10",
+        "TEST-P2-RP-02",
+        "TEST-P2-RP-03",
+        "TEST-SCN-SCENARIO-02",
+        "TEST-SCN-SCENARIO-03",
+        "TEST-SCN-SCENARIO-04",
+        "TEST-SCN-SCENARIO-08",
+        "TEST-SCN-SCENARIO-10"
+      ],
+      "summary": "围绕 (no core business objects extracted from source brief) 汇总 reports 的可读详情，让评审与下游模块不必再次拼接上下文。"
+    },
+    {
+      "api_id": "API-LISTNOCOREBUSINESSOBJECTSEXTRACTEDFROMSOURCEBRIEFREVISIONS",
+      "method": "GET",
+      "operation_id": "ListNoCoreBusinessObjectsExtractedFromSourceBriefRevisions",
+      "operation_token": "listnocorebusinessobjectsextractedfromsourcebriefrevisions",
+      "owner": "no-core-business-objects-extracted-from-source-brief-revisions",
+      "path": "/api/v1/no-core-business-objects-extracted-from-source-brief-revisions",
+      "related_requirements": [
+        "P1-REQ-015"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-15",
+        "TEST-P2-CTR-15"
+      ],
+      "summary": "Expose list and query surfaces for (no core business objects extracted from source brief) revision."
+    },
+    {
+      "api_id": "API-LISTNOCOREBUSINESSOBJECTSEXTRACTEDFROMSOURCEBRIEFS",
+      "method": "GET",
+      "operation_id": "ListNoCoreBusinessObjectsExtractedFromSourceBriefs",
+      "operation_token": "listnocorebusinessobjectsextractedfromsourcebriefs",
+      "owner": "no-core-business-objects-extracted-from-source-briefs",
+      "path": "/api/v1/no-core-business-objects-extracted-from-source-briefs/list-no-core-business-objects-extracted-from-source-briefs",
+      "related_requirements": [
+        "P1-REQ-002",
+        "P1-REQ-018",
+        "P1-REQ-003",
+        "P1-AC-001",
+        "P1-REQ-004",
+        "P1-AC-002",
+        "P1-REQ-010",
+        "P1-AC-008"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-02",
+        "TEST-DF-P2-CTR-03",
+        "TEST-DF-P2-CTR-04",
+        "TEST-DF-P2-CTR-10",
+        "TEST-P2-CTR-02",
+        "TEST-P2-CTR-03",
+        "TEST-P2-CTR-04",
+        "TEST-P2-CTR-10"
+      ],
+      "summary": "Expose list and query surfaces for (no core business objects extracted from source brief)."
+    },
+    {
+      "api_id": "API-LISTWORKFLOWAUDITRECORDS",
+      "method": "GET",
+      "operation_id": "ListWorkflowAuditRecords",
+      "operation_token": "listworkflowauditrecords",
+      "owner": "workflow-audit-records",
+      "path": "/api/v1/workflow-audit-records",
+      "related_requirements": [
+        "P1-REQ-012",
+        "P1-AC-010"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-12",
+        "TEST-P2-CTR-12"
+      ],
+      "summary": "Expose list and query surfaces for Workflow audit record."
+    },
+    {
+      "api_id": "API-LISTWORKFLOWREVIEWSUMMARIES",
+      "method": "GET",
+      "operation_id": "ListWorkflowReviewSummaries",
+      "operation_token": "listworkflowreviewsummaries",
+      "owner": "workflow-review-summaries",
+      "path": "/api/v1/workflow-review-summaries",
+      "related_requirements": [
+        "P1-REQ-006",
+        "P1-AC-004",
+        "P1-UC-002",
+        "P1-REQ-014",
+        "P1-AC-012"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-06",
+        "TEST-DF-SCN-SCENARIO-06",
+        "TEST-P2-CTR-06",
+        "TEST-SCN-SCENARIO-06"
+      ],
+      "summary": "汇总主线中的跨模块收口、评审与异常摘要，供统一复核。"
+    },
+    {
+      "api_id": "API-RECORDAUDITEVENT",
+      "method": "POST",
+      "operation_id": "RecordAuditEvent",
+      "operation_token": "recordauditevent",
+      "owner": "audit-events",
+      "path": "/api/v1/audit-events",
+      "related_requirements": [
+        "P1-REQ-001",
+        "P1-REQ-017",
+        "P1-EP-001",
+        "P1-US-001",
+        "P1-UC-003",
+        "P1-REQ-002",
+        "P1-REQ-005",
+        "P1-REQ-008",
+        "P1-REQ-011",
+        "P1-REQ-014",
+        "P1-AC-002",
+        "P1-AC-005",
+        "P1-AC-008",
+        "P1-AC-011",
+        "P1-REQ-009",
+        "P1-AC-007",
+        "P1-UC-004",
+        "P1-REQ-016",
+        "P1-AC-006"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-01",
+        "TEST-DF-P2-RP-01",
+        "TEST-DF-SCN-SCENARIO-01",
+        "TEST-DF-SCN-SCENARIO-07",
+        "TEST-DF-SCN-SCENARIO-09",
+        "TEST-P2-CTR-01",
+        "TEST-P2-RP-01",
+        "TEST-SCN-SCENARIO-01",
+        "TEST-SCN-SCENARIO-07",
+        "TEST-SCN-SCENARIO-09"
+      ],
+      "summary": "把拒绝路径、任务变更与评审结论统一写入 Audit Record 审计轨迹。"
+    },
+    {
+      "api_id": "API-RECORDWORKFLOWAUDIT",
+      "method": "POST",
+      "operation_id": "RecordWorkflowAudit",
+      "operation_token": "recordworkflowaudit",
+      "owner": "workflow-audits",
+      "path": "/api/v1/workflow-audits",
+      "related_requirements": [
+        "P1-REQ-005",
+        "P1-AC-003",
+        "P1-UC-001",
+        "P1-REQ-013",
+        "P1-AC-011"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-05",
+        "TEST-DF-SCN-SCENARIO-05",
+        "TEST-P2-CTR-05",
+        "TEST-SCN-SCENARIO-05"
+      ],
+      "summary": "保留可审计的流程收口、异常处理与对操作者可见的评审证据。"
+    },
+    {
+      "api_id": "API-UPDATEAUDITRECORDSTATUS",
+      "method": "PATCH",
+      "operation_id": "UpdateAuditRecordStatus",
+      "operation_token": "updateauditrecordstatus",
+      "owner": "audit-records",
+      "path": "/api/v1/audit-records/{id}",
+      "related_requirements": [
+        "P1-REQ-007",
+        "P1-AC-005"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-07",
+        "TEST-P2-CTR-07"
+      ],
+      "summary": "Apply bounded state updates for Audit Record."
+    },
+    {
+      "api_id": "API-UPDATENOCOREBUSINESSOBJECTSEXTRACTEDFROMSOURCEBRIEFREVISIONSTATUS",
+      "method": "PATCH",
+      "operation_id": "UpdateNoCoreBusinessObjectsExtractedFromSourceBriefRevisionStatus",
+      "operation_token": "updatenocorebusinessobjectsextractedfromsourcebriefrevisionstatus",
+      "owner": "no-core-business-objects-extracted-from-source-brief-revisions",
+      "path": "/api/v1/no-core-business-objects-extracted-from-source-brief-revisions/{id}",
+      "related_requirements": [
+        "P1-REQ-014",
+        "P1-AC-012"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-14",
+        "TEST-P2-CTR-14"
+      ],
+      "summary": "Apply bounded state updates for (no core business objects extracted from source brief) revision."
+    },
+    {
+      "api_id": "API-UPDATENOCOREBUSINESSOBJECTSEXTRACTEDFROMSOURCEBRIEFSTATUS",
+      "method": "PATCH",
+      "operation_id": "UpdateNoCoreBusinessObjectsExtractedFromSourceBriefStatus",
+      "operation_token": "updatenocorebusinessobjectsextractedfromsourcebriefstatus",
+      "owner": "no-core-business-objects-extracted-from-source-briefs",
+      "path": "/api/v1/no-core-business-objects-extracted-from-source-briefs/{id}",
+      "related_requirements": [
+        "P1-REQ-009",
+        "P1-AC-007"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-09",
+        "TEST-P2-CTR-09"
+      ],
+      "summary": "Apply bounded state updates for (no core business objects extracted from source brief)."
+    },
+    {
+      "api_id": "API-UPDATEWORKFLOWAUDITRECORDSTATUS",
+      "method": "PATCH",
+      "operation_id": "UpdateWorkflowAuditRecordStatus",
+      "operation_token": "updateworkflowauditrecordstatus",
+      "owner": "workflow-audit-records",
+      "path": "/api/v1/workflow-audit-records/{id}",
+      "related_requirements": [
+        "P1-REQ-011",
+        "P1-AC-009"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-11",
+        "TEST-P2-CTR-11"
+      ],
+      "summary": "Apply bounded state updates for Workflow audit record."
+    },
+    {
+      "api_id": "API-UPDATEWORKFLOWREVIEWSUMMARYSTATUS",
+      "method": "PATCH",
+      "operation_id": "UpdateWorkflowReviewSummaryStatus",
+      "operation_token": "updateworkflowreviewsummarystatus",
+      "owner": "workflow-review-summaries",
+      "path": "/api/v1/workflow-review-summaries/{id}",
+      "related_requirements": [
+        "P1-REQ-013",
+        "P1-AC-011"
+      ],
+      "related_tests": [
+        "TEST-DF-P2-CTR-13",
+        "TEST-P2-CTR-13"
+      ],
+      "summary": "Apply bounded state updates for Workflow review summary."
+    }
+  ],
+  "summary": {
+    "api_count": 14,
+    "approved_contract_count": 0
+  }
+}

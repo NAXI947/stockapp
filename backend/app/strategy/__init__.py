@@ -14,4 +14,8 @@ def get_all_strategies() -> Dict[str, StockStrategy]:
     return dict(_REGISTRY)
 
 # Register default strategies
+from backend.app.strategy.sniper_strategy import SniperStrategy
+
 register_strategy(VacuumStrategy())
+register_strategy(SniperStrategy())
+
