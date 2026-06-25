@@ -392,28 +392,16 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
             "roe": to_float(row_get(fin_row, "roe")),
         }
 
-    # 获取最近 7 天的详细评分历史
-    if is_sniper:
-        history_sql = """
-        SELECT trade_date, sniper_score as final_score, pct_chg, turnover_rate, volume_ratio,
-               s_holder_score, s_chip_vacuum_score, s_ma_state_score, s_safety_margin_score, s_macd_weekly_score,
-               s_low_volume_score, s_golden_pit_score, s_ignition_score, s_top_list_score, s_news_score,
-               s_base_total, s_dynamic_total, sniper_rejected as rejected, sniper_reject_reason as reject_reason
-        FROM t_sniper_daily
-        WHERE ts_code = %s AND trade_date <= %s
-        ORDER BY trade_date DESC
-        LIMIT 7
-        """
-    else:
-        history_sql = """
-        SELECT trade_date, final_score, pct_chg, turnover_rate, volume_ratio, winner_rate,
-               trend_baseline, chip_vacuum, kline_body, liquidity_base, safety_margin,
-               top_list_3d, float_risk_7d, is_limit_up, bull_trend, limit_up_20d
-        FROM t_strategy_daily
-        WHERE ts_code = %s AND trade_date <= %s
-        ORDER BY trade_date DESC
-        LIMIT 7
-        """
+    # 获取最近 7 天的爆发右侧评分历史
+    history_sql = """
+    SELECT trade_date, final_score, pct_chg, turnover_rate, volume_ratio, winner_rate,
+           trend_baseline, chip_vacuum, kline_body, liquidity_base, safety_margin,
+           top_list_3d, float_risk_7d, is_limit_up, bull_trend, limit_up_20d
+    FROM t_strategy_daily
+    WHERE ts_code = %s AND trade_date <= %s
+    ORDER BY trade_date DESC
+    LIMIT 7
+    """
     history_rows = database.fetch_all(history_sql, (ts_code, target_date))
     history_7d = [
         {
@@ -422,35 +410,57 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
             "pct_chg": to_float(row_get(row, "pct_chg")),
             "turnover_rate": to_float(row_get(row, "turnover_rate")),
             "volume_ratio": to_float(row_get(row, "volume_ratio")),
-            "winner_rate": to_float(row_get(row, "winner_rate")) if not is_sniper else None,
-            "trend_baseline": to_int(row_get(row, "trend_baseline")) if not is_sniper else None,
-            "chip_vacuum": to_int(row_get(row, "chip_vacuum")) if not is_sniper else None,
-            "kline_body": to_int(row_get(row, "kline_body")) if not is_sniper else None,
-            "liquidity_base": to_int(row_get(row, "liquidity_base")) if not is_sniper else None,
-            "safety_margin": to_int(row_get(row, "safety_margin")) if not is_sniper else None,
-            "top_list_3d": to_int(row_get(row, "top_list_3d")) if not is_sniper else None,
-            "float_risk_7d": to_int(row_get(row, "float_risk_7d")) if not is_sniper else None,
-            "is_limit_up": to_int(row_get(row, "is_limit_up")) if not is_sniper else None,
-            "bull_trend": to_int(row_get(row, "bull_trend")) if not is_sniper else None,
-            "limit_up_20d": to_int(row_get(row, "limit_up_20d")) if not is_sniper else None,
-            # Sniper fields
-            "sniper_score": to_int(row_get(row, "final_score")) if is_sniper else None,
-            "sniper_rejected": to_int(row_get(row, "rejected")) if is_sniper else None,
-            "sniper_reject_reason": row_get(row, "reject_reason") if is_sniper else None,
-            "s_holder_score": to_int(row_get(row, "s_holder_score")) if is_sniper else None,
-            "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")) if is_sniper else None,
-            "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")) if is_sniper else None,
-            "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")) if is_sniper else None,
-            "s_macd_weekly_score": to_int(row_get(row, "s_macd_weekly_score")) if is_sniper else None,
-            "s_low_volume_score": to_int(row_get(row, "s_low_volume_score")) if is_sniper else None,
-            "s_golden_pit_score": to_int(row_get(row, "s_golden_pit_score")) if is_sniper else None,
-            "s_ignition_score": to_int(row_get(row, "s_ignition_score")) if is_sniper else None,
-            "s_top_list_score": to_int(row_get(row, "s_top_list_score")) if is_sniper else None,
-            "s_news_score": to_int(row_get(row, "s_news_score")) if is_sniper else None,
-            "s_base_total": to_int(row_get(row, "s_base_total")) if is_sniper else None,
-            "s_dynamic_total": to_int(row_get(row, "s_dynamic_total")) if is_sniper else None,
+            "winner_rate": to_float(row_get(row, "winner_rate")),
+            "trend_baseline": to_int(row_get(row, "trend_baseline")),
+            "chip_vacuum": to_int(row_get(row, "chip_vacuum")),
+            "kline_body": to_int(row_get(row, "kline_body")),
+            "liquidity_base": to_int(row_get(row, "liquidity_base")),
+            "safety_margin": to_int(row_get(row, "safety_margin")),
+            "top_list_3d": to_int(row_get(row, "top_list_3d")),
+            "float_risk_7d": to_int(row_get(row, "float_risk_7d")),
+            "is_limit_up": to_int(row_get(row, "is_limit_up")),
+            "bull_trend": to_int(row_get(row, "bull_trend")),
+            "limit_up_20d": to_int(row_get(row, "limit_up_20d")),
         }
         for row in reversed(history_rows)
+    ]
+
+    # 获取最近 7 天的极简狙击手评分历史
+    sniper_history_sql = """
+    SELECT trade_date, sniper_score as final_score, pct_chg, turnover_rate, volume_ratio,
+           s_holder_score, s_chip_vacuum_score, s_ma_state_score, s_safety_margin_score, s_macd_weekly_score,
+           s_low_volume_score, s_golden_pit_score, s_ignition_score, s_top_list_score, s_news_score,
+           s_base_total, s_dynamic_total, sniper_rejected as rejected, sniper_reject_reason as reject_reason
+    FROM t_sniper_daily
+    WHERE ts_code = %s AND trade_date <= %s
+    ORDER BY trade_date DESC
+    LIMIT 7
+    """
+    sniper_history_rows = database.fetch_all(sniper_history_sql, (ts_code, target_date))
+    sniper_history_7d = [
+        {
+            "trade_date": row["trade_date"],
+            "final_score": to_int(row_get(row, "final_score")),
+            "pct_chg": to_float(row_get(row, "pct_chg")),
+            "turnover_rate": to_float(row_get(row, "turnover_rate")),
+            "volume_ratio": to_float(row_get(row, "volume_ratio")),
+            "sniper_score": to_int(row_get(row, "final_score")),
+            "sniper_rejected": to_int(row_get(row, "rejected")),
+            "sniper_reject_reason": row_get(row, "reject_reason"),
+            "s_holder_score": to_int(row_get(row, "s_holder_score")),
+            "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")),
+            "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")),
+            "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")),
+            "s_macd_weekly_score": to_int(row_get(row, "s_macd_weekly_score")),
+            "s_low_volume_score": to_int(row_get(row, "s_low_volume_score")),
+            "s_golden_pit_score": to_int(row_get(row, "s_golden_pit_score")),
+            "s_ignition_score": to_int(row_get(row, "s_ignition_score")),
+            "s_top_list_score": to_int(row_get(row, "s_top_list_score")),
+            "s_news_score": to_int(row_get(row, "s_news_score")),
+            "s_base_total": to_int(row_get(row, "s_base_total")),
+            "s_dynamic_total": to_int(row_get(row, "s_dynamic_total")),
+        }
+        for row in reversed(sniper_history_rows)
     ]
 
     return DetailResponse(
@@ -497,6 +507,7 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
             upcoming_float=upcoming_float,
             fin_indicator=fin_payload,
             history_7d=history_7d,
+            sniper_history_7d=sniper_history_7d,
             # Sniper fields
             sniper_score=to_int(core.get("sniper_score")) if is_sniper else None,
             sniper_rejected=to_int(core.get("sniper_rejected")) if is_sniper else None,
@@ -568,6 +579,279 @@ def get_data_health(database=Depends(get_prepared_database)):
     return {"code": 200, "msg": "success", "data": build_data_health_report(database)}
 
 
+def _count_scalar(database, sql: str, params: tuple[object, ...] = ()) -> int:
+    rows = database.fetch_all(sql, params)
+    if not rows:
+        return 0
+    row = rows[0]
+    value = row_get(row, "count_value")
+    if value is None:
+        value = next(iter(row.values())) if isinstance(row, dict) and row else 0
+    return int(value or 0)
+
+
+def _executemany(database, sql: str, rows: list[tuple[object, ...]]) -> int:
+    if not rows:
+        return 0
+    if hasattr(database, "_connection_scope"):
+        prepared_sql = database.prepare_sql(sql)
+        with database._connection_scope() as connection:
+            cursor = connection.cursor()
+            try:
+                cursor.executemany(prepared_sql, rows)
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+            finally:
+                cursor.close()
+        return len(rows)
+    for row in rows:
+        database.execute(sql, row)
+    return len(rows)
+
+
+def _backfill_volume_ratio(database) -> dict[str, Any]:
+    before_daily_basic = _count_scalar(
+        database,
+        "SELECT COUNT(1) AS count_value FROM t_daily_basic WHERE volume_ratio IS NULL",
+    )
+    candidates = database.fetch_all(
+        """
+        SELECT b.ts_code, b.trade_date, d.vol
+        FROM t_daily_basic b
+        JOIN t_daily_bar d ON d.ts_code = b.ts_code AND d.trade_date = b.trade_date
+        WHERE b.volume_ratio IS NULL
+          AND d.vol IS NOT NULL
+        """
+    )
+    updates: list[tuple[object, ...]] = []
+    if candidates:
+        trade_dates = [str(row_get(row, "trade_date")) for row in candidates if row_get(row, "trade_date")]
+        ts_codes = sorted({str(row_get(row, "ts_code")) for row in candidates if row_get(row, "ts_code")})
+        try:
+            lower_bound = (datetime.strptime(min(trade_dates), "%Y%m%d") - timedelta(days=90)).strftime("%Y%m%d")
+        except Exception:
+            lower_bound = min(trade_dates)
+        upper_bound = max(trade_dates)
+
+        rows_by_code: dict[str, list[dict[str, Any]]] = {}
+        for index in range(0, len(ts_codes), 500):
+            batch = ts_codes[index:index + 500]
+            placeholders = ", ".join(["%s"] * len(batch))
+            rows = database.fetch_all(
+                f"""
+                SELECT ts_code, trade_date, vol
+                FROM t_daily_bar
+                WHERE ts_code IN ({placeholders})
+                  AND trade_date >= %s
+                  AND trade_date <= %s
+                ORDER BY ts_code, trade_date ASC
+                """,
+                tuple(batch + [lower_bound, upper_bound]),
+            )
+            for row in rows:
+                rows_by_code.setdefault(str(row_get(row, "ts_code")), []).append(row)
+
+        index_by_key: dict[tuple[str, str], int] = {}
+        for ts_code, series in rows_by_code.items():
+            for index, row in enumerate(series):
+                index_by_key[(ts_code, str(row_get(row, "trade_date")))] = index
+
+        for row in candidates:
+            ts_code = str(row_get(row, "ts_code"))
+            trade_date = str(row_get(row, "trade_date"))
+            series = rows_by_code.get(ts_code) or []
+            current_index = index_by_key.get((ts_code, trade_date))
+            if current_index is None:
+                continue
+            try:
+                current_vol = float(row_get(series[current_index], "vol"))
+            except (TypeError, ValueError):
+                continue
+            previous_volumes: list[float] = []
+            for item in reversed(series[:current_index]):
+                if len(previous_volumes) >= 5:
+                    break
+                try:
+                    previous_vol = float(row_get(item, "vol"))
+                except (TypeError, ValueError):
+                    continue
+                if previous_vol > 0:
+                    previous_volumes.append(previous_vol)
+            if len(previous_volumes) < 5:
+                continue
+            avg_volume = sum(previous_volumes) / len(previous_volumes)
+            if avg_volume <= 0:
+                continue
+            updates.append((round(current_vol / avg_volume, 4), ts_code, trade_date))
+
+    updated_daily_basic = _executemany(
+        database,
+        """
+        UPDATE t_daily_basic
+        SET volume_ratio = %s
+        WHERE ts_code = %s
+          AND trade_date = %s
+          AND volume_ratio IS NULL
+        """,
+        updates,
+    )
+    before_strategy = _count_scalar(
+        database,
+        """
+        SELECT COUNT(1) AS count_value
+        FROM t_strategy_daily s
+        WHERE s.volume_ratio IS NULL
+          AND EXISTS (
+              SELECT 1 FROM t_daily_basic b
+              WHERE b.ts_code = s.ts_code
+                AND b.trade_date = s.trade_date
+                AND b.volume_ratio IS NOT NULL
+          )
+        """,
+    )
+    before_sniper = _count_scalar(
+        database,
+        """
+        SELECT COUNT(1) AS count_value
+        FROM t_sniper_daily s
+        WHERE s.volume_ratio IS NULL
+          AND EXISTS (
+              SELECT 1 FROM t_daily_basic b
+              WHERE b.ts_code = s.ts_code
+                AND b.trade_date = s.trade_date
+                AND b.volume_ratio IS NOT NULL
+          )
+        """,
+    )
+    for table_name in ("t_strategy_daily", "t_sniper_daily"):
+        database.execute(
+            f"""
+            UPDATE {table_name}
+            SET volume_ratio = (
+                SELECT b.volume_ratio
+                FROM t_daily_basic b
+                WHERE b.ts_code = {table_name}.ts_code
+                  AND b.trade_date = {table_name}.trade_date
+            )
+            WHERE volume_ratio IS NULL
+              AND EXISTS (
+                  SELECT 1 FROM t_daily_basic b
+                  WHERE b.ts_code = {table_name}.ts_code
+                    AND b.trade_date = {table_name}.trade_date
+                    AND b.volume_ratio IS NOT NULL
+              )
+            """
+        )
+    after_daily_basic = _count_scalar(
+        database,
+        "SELECT COUNT(1) AS count_value FROM t_daily_basic WHERE volume_ratio IS NULL",
+    )
+    return {
+        "target": "volume_ratio",
+        "daily_basic_null_before": before_daily_basic,
+        "daily_basic_null_after": after_daily_basic,
+        "daily_basic_filled": max(before_daily_basic - after_daily_basic, 0),
+        "daily_basic_updates_attempted": updated_daily_basic,
+        "strategy_synced": before_strategy,
+        "sniper_synced": before_sniper,
+    }
+
+
+def _backfill_premium(database) -> dict[str, Any]:
+    before_null = _count_scalar(
+        database,
+        "SELECT COUNT(1) AS count_value FROM t_block_trade WHERE premium IS NULL",
+    )
+    database.execute(
+        """
+        UPDATE t_block_trade
+        SET premium = ROUND(
+            (price - (
+                SELECT d.close
+                FROM t_daily_bar d
+                WHERE d.ts_code = t_block_trade.ts_code
+                  AND d.trade_date = t_block_trade.trade_date
+            )) / (
+                SELECT d.close
+                FROM t_daily_bar d
+                WHERE d.ts_code = t_block_trade.ts_code
+                  AND d.trade_date = t_block_trade.trade_date
+            ) * 100.0,
+            4
+        )
+        WHERE premium IS NULL
+          AND price IS NOT NULL
+          AND EXISTS (
+              SELECT 1
+              FROM t_daily_bar d
+              WHERE d.ts_code = t_block_trade.ts_code
+                AND d.trade_date = t_block_trade.trade_date
+                AND d.close IS NOT NULL
+                AND d.close > 0
+          )
+        """
+    )
+    after_null = _count_scalar(
+        database,
+        "SELECT COUNT(1) AS count_value FROM t_block_trade WHERE premium IS NULL",
+    )
+    eligible_sniper = _count_scalar(
+        database,
+        """
+        SELECT COUNT(1) AS count_value
+        FROM t_sniper_daily s
+        WHERE COALESCE(s.sniper_rejected, 0) = 0
+          AND COALESCE(s.s_top_list_score, 0) < 4
+          AND EXISTS (
+              SELECT 1
+              FROM t_block_trade b
+              WHERE b.ts_code = s.ts_code
+                AND b.trade_date = s.trade_date
+                AND b.premium > 0
+          )
+        """,
+    )
+    database.execute(
+        """
+        UPDATE t_sniper_daily
+        SET
+          sniper_score = COALESCE(sniper_score, 0) + (4 - COALESCE(s_top_list_score, 0)),
+          s_dynamic_total = COALESCE(s_dynamic_total, 0) + (4 - COALESCE(s_top_list_score, 0)),
+          s_top_list_score = 4
+        WHERE COALESCE(sniper_rejected, 0) = 0
+          AND COALESCE(s_top_list_score, 0) < 4
+          AND EXISTS (
+              SELECT 1
+              FROM t_block_trade b
+              WHERE b.ts_code = t_sniper_daily.ts_code
+                AND b.trade_date = t_sniper_daily.trade_date
+                AND b.premium > 0
+          )
+        """
+    )
+    return {
+        "target": "premium",
+        "block_trade_null_before": before_null,
+        "block_trade_null_after": after_null,
+        "block_trade_filled": max(before_null - after_null, 0),
+        "sniper_scored": eligible_sniper,
+    }
+
+
+@router.post("/data-health/backfill/{target}")
+def backfill_data_health_field(target: str, database=Depends(get_prepared_database)):
+    if target == "volume_ratio":
+        data = _backfill_volume_ratio(database)
+    elif target == "premium":
+        data = _backfill_premium(database)
+    else:
+        raise HTTPException(status_code=400, detail="target must be one of: volume_ratio, premium")
+    data["health"] = build_data_health_report(database)
+    return {"code": 200, "msg": "success", "data": data}
+
+
 @router.post("/analysis/stock_advice", response_model=StockAdviceResponse)
 def stock_advice(payload: StockAdviceRequest, database=Depends(get_prepared_database)):
     advice = generate_stock_advice(database, load_config().ai, payload.symbol, payload.market)
@@ -630,14 +914,55 @@ def get_job_runs(days: int = 7, limit: int = 20, job_name: Optional[str] = None,
     return JobRunsResponse(data=JobRunsPayload(**payload))
 
 
+@router.get("/jobs/tushare-latest")
+def check_tushare_latest():
+    try:
+        from backend.app.config import load_config
+        from backend.app.runtime import build_client
+        import os
+        from datetime import date, timedelta
+        
+        is_desktop = os.environ.get("APP_ENV") == "desktop"
+        config_file = "config.desktop.yaml" if is_desktop else "config.yaml"
+        config_path = os.path.join(os.getcwd(), config_file)
+        if not os.path.exists(config_path):
+            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), config_file)
+        config = load_config(config_path)
+        client = build_client(config)
+        
+        end = date.today()
+        start = end - timedelta(days=20)
+        cal_params = {'start_date': start.strftime('%Y%m%d'), 'end_date': end.strftime('%Y%m%d')}
+        cal_res = client.query('trade_cal', ['cal_date', 'is_open'], params=cal_params)
+        cal_records = cal_res.to_dicts()
+        trade_dates = sorted([r['cal_date'] for r in cal_records if r.get('is_open') == 1])
+        
+        for candidate in reversed(trade_dates):
+            daily_res = client.query('daily', ['ts_code', 'trade_date'], params={'trade_date': candidate})
+            if len(daily_res.to_dicts()) > 0:
+                return {"code": 200, "msg": "success", "data": {"latest_date": candidate}}
+                
+        return {"code": 200, "msg": "success", "data": {"latest_date": None}}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @router.get("/jobs/definitions")
 def get_manual_job_definitions():
     return {"code": 200, "msg": "success", "data": {"items": list_job_definitions()}}
 
 
 @router.get("/jobs/tasks")
-def get_manual_job_tasks():
-    return {"code": 200, "msg": "success", "data": {"items": list_manual_tasks()}}
+def get_manual_job_tasks(database=Depends(get_prepared_database)):
+    items = list_manual_tasks()
+    latest_date = None
+    try:
+        latest = database.fetch_all("SELECT MAX(trade_date) AS td FROM t_daily_bar")
+        if latest and latest[0]["td"]:
+            latest_date = latest[0]["td"]
+    except Exception:
+        pass
+    return {"code": 200, "msg": "success", "data": {"items": items, "latest_trade_date": latest_date}}
 
 
 @router.post("/jobs/history/run")

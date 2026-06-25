@@ -1,5 +1,14 @@
-function getBridgeApi() {
-  return globalThis.window?.pywebview?.api || null
+export async function getBridgeApi() {
+  if (globalThis.window?.pywebview?.api) {
+    return globalThis.window.pywebview.api
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 2000)
+    globalThis.window?.addEventListener('pywebviewready', () => {
+      clearTimeout(timer)
+      resolve(globalThis.window?.pywebview?.api || null)
+    }, { once: true })
+  })
 }
 
 export function readLocalList(storageKey) {
@@ -23,7 +32,7 @@ function writeLocalList(storageKey, list) {
 
 export async function hydratePersistentList(storageKey) {
   const localList = readLocalList(storageKey)
-  const api = getBridgeApi()
+  const api = await getBridgeApi()
 
   if (!api?.load_store) {
     return localList
@@ -48,7 +57,7 @@ export async function hydratePersistentList(storageKey) {
 
 export async function savePersistentList(storageKey, list) {
   writeLocalList(storageKey, list)
-  const api = getBridgeApi()
+  const api = await getBridgeApi()
   if (!api?.save_store) {
     return
   }

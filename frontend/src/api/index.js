@@ -284,6 +284,11 @@ export const jobApi = {
   // 获取任务阶段日志
   getStages(params = {}, options = {}) {
     return api.get('/job/stages', { params, ...options })
+  },
+
+  // 获取 Tushare 最新可用日期
+  getTushareLatestDate(options = {}) {
+    return api.get('/jobs/tushare-latest', { cache: false, ...options })
   }
 }
 
@@ -310,6 +315,11 @@ export const configApi = {
 export const dataApi = {
   getHealth(options = {}) {
     return api.get('/data-health', { cache: false, ...options })
+  },
+
+  backfill(target, options = {}) {
+    cacheUtils.clearUrl('/data-health')
+    return api.post(`/data-health/backfill/${target}`, {}, { cache: false, dedup: false, ...options })
   }
 }
 

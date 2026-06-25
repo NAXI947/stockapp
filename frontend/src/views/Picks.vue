@@ -19,8 +19,9 @@
             v-else
             class="ml-2 text-xs text-purple-700 bg-purple-50 px-2 py-0.5 rounded"
           >
-            显示全量评分与昨日回溯
+            页面仅显示评分前十
           </span>
+
         </p>
       </div>
       <!-- 导出按钮 -->
@@ -752,6 +753,10 @@ onMounted(fetchPicks)
 function switchMode(newMode) {
   if (mode.value === newMode) return
   mode.value = newMode
+  
+  // 清理 Picks 缓存，防止内存缓存导致切换后显示相同的数据
+  picksApi.clearCache()
+  
   fetchPicks()
 }
 

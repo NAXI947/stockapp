@@ -33,15 +33,12 @@ class PickItem(BaseModel):
     st_risk: Optional[int] = None
     rejected: Optional[int] = None
     reject_reason: Optional[str] = None
-    # v1.2 新增：埋伏池相关动态字段
     is_action_triggered: Optional[bool] = Field(False, description="是否触发异动（量能活跃或K线实体达标）")
     ambush_add_date: Optional[str] = Field(None, description="加入埋伏池的日期")
     expected_logic: Optional[str] = Field(None, description="埋伏预期逻辑")
-    # v1.3 新增：狙击手评分昨日回溯异动归因与得分变化
     trend_reason: Optional[str] = Field(None, description="昨日回溯异动归因原因")
     score_change: Optional[int] = Field(None, description="较昨日得分变动")
     score_trend: List[int] = Field(default_factory=list, description="最近7日评分趋势")
-    # Sniper-specific fields
     sniper_score: Optional[int] = None
     sniper_rejected: Optional[int] = None
     sniper_reject_reason: Optional[str] = None
@@ -97,14 +94,12 @@ class DetailPayload(BaseModel):
     limit_up_20d: Optional[int] = None
     is_limit_up: Optional[int] = None
     bull_trend: Optional[int] = None
-    # 策略相关字段
     final_score: Optional[int] = None
     pct_chg: Optional[float] = None
     turnover_rate: Optional[float] = None
     volume_ratio: Optional[float] = None
     upper_space: Optional[float] = None
     vol_score: Optional[float] = None
-    # v1.1 新增字段
     trend_baseline: Optional[int] = None
     chip_vacuum: Optional[int] = None
     kline_body: Optional[int] = None
@@ -118,7 +113,7 @@ class DetailPayload(BaseModel):
     upcoming_float: List[dict]
     fin_indicator: Optional[dict] = None
     history_7d: List[dict] = Field(default_factory=list, description="最近7日详细评分历史")
-    # Sniper-specific fields
+    sniper_history_7d: List[dict] = Field(default_factory=list, description="最近7日狙击手评分历史")
     sniper_score: Optional[int] = None
     sniper_rejected: Optional[int] = None
     sniper_reject_reason: Optional[str] = None
@@ -399,7 +394,6 @@ class DailyDateJobRunRequest(BaseModel):
     trade_date: str = Field(..., pattern=r'^\d{8}$')
 
 
-# 埋伏池相关模型
 class AmbushPoolCreate(BaseModel):
     ts_code: str = Field(..., min_length=9, max_length=16, description="股票代码")
     expected_logic: str = Field(..., min_length=1, max_length=255, description="埋伏预期逻辑")
@@ -420,7 +414,6 @@ class AmbushPoolResponse(BaseModel):
     add_date: str
     status: int
     update_time: Optional[str] = None
-    # 关联的策略指标
     chip_vacuum: Optional[int] = None
     safety_margin: Optional[int] = None
     trend_baseline: Optional[int] = None

@@ -13,6 +13,8 @@ LOG_DIR = ROOT / 'logs'
 _RUN_ID_LOCK = threading.Lock()
 _LAST_RUN_ID = 0
 
+thread_local_data = threading.local()
+
 
 def next_run_id() -> int:
     global _LAST_RUN_ID
@@ -21,6 +23,8 @@ def next_run_id() -> int:
         if candidate <= _LAST_RUN_ID:
             candidate = _LAST_RUN_ID + 1
         _LAST_RUN_ID = candidate
+        if hasattr(thread_local_data, 'run_ids') and isinstance(thread_local_data.run_ids, list):
+            thread_local_data.run_ids.append(candidate)
         return candidate
 
 

@@ -163,7 +163,7 @@ class ConceptDetailSyncTest(unittest.TestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(requested_params[0]['ann_date'], '20260607')
         self.assertNotIn('ts_code', requested_params[0])
-        self.assertEqual(requested_params[1]['ts_code'], '000001.SZ')
+        self.assertEqual(len(requested_params), 1)
 
 
 if __name__ == '__main__':

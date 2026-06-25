@@ -122,27 +122,57 @@
         </div>
 
         <!-- 7日总评分趋势可视化 -->
-        <div v-if="detail.history_7d && detail.history_7d.length" class="mt-4 pt-4 border-t">
-          <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势</p>
-          <div class="flex items-center space-x-1 overflow-x-auto pb-1">
-            <div
-              v-for="h in detail.history_7d"
-              :key="h.trade_date"
-              class="flex flex-col items-center shrink-0 w-12"
-            >
-              <div class="text-[9px] text-gray-400 font-mono">{{ h.trade_date.slice(4) }}</div>
+        <div class="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 爆发右侧 -->
+          <div v-if="detail.history_7d && detail.history_7d.length" class="border-r pr-2 border-gray-100 last:border-r-0">
+            <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势 (爆发右侧)</p>
+            <div class="flex items-center space-x-1 overflow-x-auto pb-1">
               <div
-                class="w-8 h-10 flex items-end justify-center bg-gray-50 rounded mt-0.5 border border-gray-100"
-                :title="`${h.trade_date}: ${h.final_score}分`"
+                v-for="h in detail.history_7d"
+                :key="h.trade_date"
+                class="flex flex-col items-center shrink-0 w-12"
               >
+                <div class="text-[9px] text-gray-400 font-mono">{{ h.trade_date.slice(4) }}</div>
                 <div
-                  class="w-4 rounded-t transition-all duration-300"
-                  :class="h.final_score >= 70 ? 'bg-emerald-500' : (h.final_score >= 50 ? 'bg-yellow-500' : 'bg-gray-400')"
-                  :style="`height: ${Math.max(10, (h.final_score / 100) * 100)}%`"
-                ></div>
+                  class="w-8 h-10 flex items-end justify-center bg-gray-50 rounded mt-0.5 border border-gray-100"
+                  :title="`${h.trade_date}: ${h.final_score}分`"
+                >
+                  <div
+                    class="w-4 rounded-t transition-all duration-300"
+                    :class="h.final_score >= 70 ? 'bg-emerald-500' : (h.final_score >= 50 ? 'bg-yellow-500' : 'bg-gray-400')"
+                    :style="`height: ${Math.max(10, (h.final_score / 100) * 100)}%`"
+                  ></div>
+                </div>
+                <div class="text-[10px] font-semibold mt-0.5 font-mono" :class="getScoreClass(h.final_score)">
+                  {{ h.final_score }}
+                </div>
               </div>
-              <div class="text-[10px] font-semibold mt-0.5 font-mono" :class="getScoreClass(h.final_score)">
-                {{ h.final_score }}
+            </div>
+          </div>
+
+          <!-- 极简狙击手 -->
+          <div v-if="detail.sniper_history_7d && detail.sniper_history_7d.length">
+            <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势 (极简狙击手)</p>
+            <div class="flex items-center space-x-1 overflow-x-auto pb-1">
+              <div
+                v-for="h in detail.sniper_history_7d"
+                :key="h.trade_date"
+                class="flex flex-col items-center shrink-0 w-12"
+              >
+                <div class="text-[9px] text-gray-400 font-mono">{{ h.trade_date.slice(4) }}</div>
+                <div
+                  class="w-8 h-10 flex items-end justify-center bg-gray-50 rounded mt-0.5 border border-gray-100"
+                  :title="`${h.trade_date}: ${h.final_score}分`"
+                >
+                  <div
+                    class="w-4 rounded-t transition-all duration-300"
+                    :class="h.final_score >= 70 ? 'bg-emerald-500' : (h.final_score >= 50 ? 'bg-yellow-500' : 'bg-gray-400')"
+                    :style="`height: ${Math.max(10, (h.final_score / 100) * 100)}%`"
+                  ></div>
+                </div>
+                <div class="text-[10px] font-semibold mt-0.5 font-mono" :class="getScoreClass(h.final_score)">
+                  {{ h.final_score }}
+                </div>
               </div>
             </div>
           </div>
@@ -153,7 +183,7 @@
       <div class="bg-white rounded-lg shadow p-4">
         <div class="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h3 class="text-sm font-medium text-gray-700">策略评分拆解</h3>
+            <h3 class="text-sm font-medium text-gray-700">{{ isSniper ? '极简狙击手评分拆解' : '策略评分拆解' }}</h3>
             <p class="text-xs text-gray-500 mt-1">展示各评分项规则分值与当前命中状态，总分以策略计算结果为准</p>
           </div>
           <div class="text-right">
@@ -193,8 +223,8 @@
           <div class="rounded-lg border border-gray-200 overflow-hidden">
             <div class="px-4 py-3 bg-gray-50 border-b">
               <div class="flex items-center justify-between">
-                <span class="text-sm font-medium text-gray-700">动能加分与风险</span>
-                <span class="text-xs text-gray-500">满分 55，风险最多扣 20</span>
+                <span class="text-sm font-medium text-gray-700">{{ isSniper ? '动态加分' : '动能加分与风险' }}</span>
+                <span class="text-xs text-gray-500">{{ isSniper ? '满分 40' : '满分 55，风险最多扣 20' }}</span>
               </div>
             </div>
             <div class="divide-y divide-gray-100">
@@ -219,7 +249,10 @@
         </div>
 
         <div class="mt-4 rounded-lg bg-blue-50 border border-blue-100 px-4 py-3">
-          <p class="text-sm text-blue-900">
+          <p class="text-sm text-blue-900" v-if="isSniper">
+            已知基础分 {{ baseScoreSummary }}，动态分 {{ momentumScoreSummary }}，总分以策略结果 {{ detail.final_score ?? 0 }} 分为准
+          </p>
+          <p class="text-sm text-blue-900" v-else>
             已知基础分 {{ baseScoreSummary }}{{ chipScoreSummary }}，动能分 {{ momentumScoreSummary }}，风险项 {{ penaltyScoreSummary }}，总分以策略结果 {{ detail.final_score ?? 0 }} 分为准
           </p>
         </div>
@@ -779,7 +812,7 @@ const momentumScoreItems = computed(() => {
 })
 
 const detailIndicators = computed(() => {
-  const history = detail.value?.history_7d || []
+  const history = isSniper.value ? (detail.value?.sniper_history_7d || []) : (detail.value?.history_7d || [])
   const latest = detail.value || {}
 
   // Helpers to resolve trend of a key from history

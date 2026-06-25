@@ -2,7 +2,26 @@
   <div>
     <div class="mb-6 flex items-start justify-between">
       <div>
-        <h1 class="text-xl font-bold text-gray-900">数据更新</h1>
+        <div class="flex items-center gap-3">
+          <h1 class="text-xl font-bold text-gray-900">数据更新</h1>
+          <span v-if="latestTradeDate" class="text-sm px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full">
+            最新数据: {{ latestTradeDate }}
+          </span>
+          <button 
+            @click="checkTushareLatest" 
+            :disabled="checkingTushare"
+            class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-200 transition-colors flex items-center"
+          >
+            <svg v-if="checkingTushare" class="animate-spin -ml-1 mr-1 h-3 w-3 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ checkingTushare ? '检测中...' : '检测Tushare最新行情' }}
+          </button>
+          <span v-if="tushareLatestDate" class="text-xs px-2 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded">
+            Tushare 最新: {{ tushareLatestDate }}
+          </span>
+        </div>
         <p class="text-sm text-gray-500 mt-1">手动触发日更、周期更新、按日期补更并查看运行状态</p>
       </div>
       <div class="flex items-center space-x-2">
@@ -76,10 +95,10 @@
             <tr>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">任务</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">入库比例</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">进度</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">开始时间</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">结束时间</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日志</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">运行时间</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">失败表明细</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
@@ -95,9 +114,20 @@
                 <span class="inline-flex px-2 py-1 text-xs rounded" :class="statusClass(task.status)">
                   {{ statusText(task.status) }}
                 </span>
-                <div v-if="task.message" class="text-xs text-gray-500 mt-1">{{ task.message }}</div>
+                <div v-if="task.message" class="text-xs text-gray-500 mt-1 max-w-[200px] truncate" :title="task.message">
+                  {{ task.message }}
+                </div>
               </td>
-              <td class="px-4 py-3 min-w-[260px]">
+              <td class="px-4 py-3">
+                <div v-if="task.tables && task.tables.length" class="text-sm font-medium text-gray-900 font-mono">
+                  {{ task.success_ratio }}
+                  <span class="text-xs text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded ml-1">
+                    {{ task.success_percentage }}%
+                  </span>
+                </div>
+                <div v-else class="text-xs text-gray-400">-</div>
+              </td>
+              <td class="px-4 py-3 min-w-[240px]">
                 <div class="flex items-center justify-between gap-3">
                   <span class="text-xs font-medium text-gray-700 truncate">{{ progressCurrent(task) }}</span>
                   <span class="text-xs text-gray-400 shrink-0">{{ progressPercentText(task) }}</span>
@@ -113,10 +143,32 @@
                   {{ progressDetail(task) }}
                 </div>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ task.started_at || '-' }}</td>
-              <td class="px-4 py-3 text-sm text-gray-600">{{ task.finished_at || '-' }}</td>
-              <td class="px-4 py-3 text-xs text-gray-500 max-w-[360px] truncate" :title="task.log_file">
-                {{ task.log_file || '-' }}
+              <td class="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                <div>起: {{ task.started_at || '-' }}</div>
+                <div class="mt-1">止: {{ task.finished_at || '-' }}</div>
+              </td>
+              <td class="px-4 py-3 text-xs">
+                <div class="max-w-[240px] overflow-y-auto max-h-[80px]">
+                  <div
+                    v-for="t in getFailedTables(task)"
+                    :key="t.table_name"
+                    class="text-xs text-red-600 flex flex-col mb-1 border-b border-red-50 pb-0.5 last:border-b-0"
+                  >
+                    <span class="font-semibold">{{ t.table_name }}</span>
+                    <span class="text-[10px] text-gray-500 truncate" :title="t.message">
+                      {{ t.message || '入库失败' }}
+                    </span>
+                  </div>
+                  <div v-if="task.status === 'success' && !getFailedTables(task).length" class="text-green-600 font-medium">
+                    ✓ 全部成功
+                  </div>
+                  <div v-if="task.status === 'running'" class="text-gray-400">
+                    同步中...
+                  </div>
+                  <div v-if="task.status === 'failed' && !getFailedTables(task).length" class="text-red-500">
+                    任务异常中断
+                  </div>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -181,6 +233,9 @@ import { configApi, jobApi } from '@/api'
 
 const jobs = ref([])
 const tasks = ref([])
+const latestTradeDate = ref(null)
+const tushareLatestDate = ref(null)
+const checkingTushare = ref(false)
 const feedback = ref('')
 const feedbackType = ref('success')
 const lastLoaded = ref(null)
@@ -223,9 +278,26 @@ async function loadDefinitions() {
   jobs.value = data.items || []
 }
 
+async function checkTushareLatest() {
+  if (checkingTushare.value) return
+  checkingTushare.value = true
+  try {
+    const data = await jobApi.getTushareLatestDate()
+    tushareLatestDate.value = data.latest_date || '无数据'
+    feedback.value = `检测成功: Tushare 最新行情日期为 ${tushareLatestDate.value}`
+    feedbackType.value = 'success'
+  } catch (err) {
+    feedback.value = `检测 Tushare 行情失败: ${err.message}`
+    feedbackType.value = 'error'
+  } finally {
+    checkingTushare.value = false
+  }
+}
+
 async function loadTasks() {
   const data = await jobApi.getTasks()
   tasks.value = data.items || []
+  latestTradeDate.value = data.latest_trade_date || null
   lastLoaded.value = new Date()
 }
 
@@ -308,6 +380,11 @@ function clearPolling() {
     window.clearInterval(timer)
     timer = null
   }
+}
+
+function getFailedTables(task) {
+  if (!task || !task.tables) return []
+  return task.tables.filter(t => t.status === 'failed')
 }
 
 function statusText(status) {

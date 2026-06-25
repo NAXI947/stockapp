@@ -7,7 +7,7 @@
       </div>
       <button
         @click="loadHealth"
-        :disabled="loading"
+        :disabled="loading || !!backfillTarget"
         class="text-sm px-3 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:bg-gray-100 transition-colors"
       >
         {{ loading ? '检查中...' : '刷新' }}
@@ -42,6 +42,10 @@
       <div class="space-y-1">
         <p v-for="warning in warnings" :key="warning" class="text-sm text-yellow-700">{{ warning }}</p>
       </div>
+    </div>
+
+    <div v-if="backfillMessage" class="mb-6 rounded-lg border px-4 py-3 text-sm" :class="backfillMessageClass">
+      {{ backfillMessage }}
     </div>
 
     <div v-if="error" class="bg-red-50 border border-red-100 text-red-700 rounded-lg p-4 text-sm">
@@ -116,6 +120,7 @@
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">非空/基数</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">完成率</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">更新脚本</th>
+                  <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
@@ -131,6 +136,17 @@
                   <td class="px-3 py-2 text-sm text-gray-600 max-w-[360px]" :title="field.updater">
                     {{ field.updater || '-' }}
                   </td>
+                  <td class="px-3 py-2 text-right">
+                    <button
+                      v-if="backfillTargetFor(table, field)"
+                      @click="runBackfill(backfillTargetFor(table, field))"
+                      :disabled="!!backfillTarget"
+                      class="text-xs px-2.5 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 transition-colors"
+                    >
+                      {{ backfillTarget === backfillTargetFor(table, field) ? '补全中...' : '手动补全' }}
+                    </button>
+                    <span v-else class="text-xs text-gray-300">-</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -142,7 +158,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { dataApi } from '@/api'
 
 const loading = ref(false)
@@ -151,6 +167,15 @@ const summary = ref({})
 const items = ref([])
 const warnings = ref([])
 const expandedTables = ref(new Set())
+const backfillTarget = ref('')
+const backfillMessage = ref('')
+const backfillFailed = ref(false)
+
+const backfillMessageClass = computed(() => {
+  return backfillFailed.value
+    ? 'bg-red-50 border-red-100 text-red-700'
+    : 'bg-green-50 border-green-100 text-green-700'
+})
 
 async function loadHealth() {
   loading.value = true
@@ -166,6 +191,48 @@ async function loadHealth() {
   } finally {
     loading.value = false
   }
+}
+
+async function runBackfill(target) {
+  backfillTarget.value = target
+  backfillMessage.value = ''
+  backfillFailed.value = false
+  try {
+    const data = await dataApi.backfill(target)
+    applyHealthPayload(data.health)
+    backfillMessage.value = formatBackfillMessage(data)
+    const tableName = target === 'premium' ? 't_block_trade' : 't_daily_basic'
+    const next = new Set(expandedTables.value)
+    next.add(tableName)
+    expandedTables.value = next
+  } catch (err) {
+    backfillFailed.value = true
+    backfillMessage.value = err.message || '补全失败'
+  } finally {
+    backfillTarget.value = ''
+  }
+}
+
+function applyHealthPayload(data = {}) {
+  summary.value = data.summary || {}
+  items.value = data.items || []
+  warnings.value = data.warnings || []
+}
+
+function backfillTargetFor(table, field) {
+  if (table.table_name === 't_daily_basic' && field.field === 'volume_ratio') return 'volume_ratio'
+  if (table.table_name === 't_block_trade' && field.field === 'premium') return 'premium'
+  return ''
+}
+
+function formatBackfillMessage(data) {
+  if (data.target === 'volume_ratio') {
+    return `量比补全完成：基础表补齐 ${data.daily_basic_filled || 0} 条，普通策略同步 ${data.strategy_synced || 0} 条，狙击策略同步 ${data.sniper_synced || 0} 条；剩余空值 ${data.daily_basic_null_after || 0} 条。`
+  }
+  if (data.target === 'premium') {
+    return `大宗溢价率补全完成：补齐 ${data.block_trade_filled || 0} 条，狙击策略补分 ${data.sniper_scored || 0} 条；剩余空值 ${data.block_trade_null_after || 0} 条。`
+  }
+  return '补全完成'
 }
 
 function toggleTable(tableName) {

@@ -4,7 +4,7 @@ from datetime import date
 
 import pytest
 
-from backend.app.ingest import DataIngestionService, FULL_MARKET_SUPPLEMENTAL_SPECS
+from backend.app.ingest import DataIngestionService, FULL_MARKET_SUPPLEMENTAL_SPECS, TableSpec
 from backend.app.job_checkpoint import JobCheckpointStore
 from backend.app.job_runner import JOB_DEFINITIONS
 
@@ -65,6 +65,93 @@ def test_manual_update_date_job_passes_date_to_daily_steps():
         ("job_daily_featured.py", ["{date}"]),
         ("job_daily_strategy.py", ["{date}"]),
     ]
+
+
+def test_daily_basic_fills_missing_volume_ratio_from_daily_bar():
+    database = _FakeDatabase(
+        {
+            "FROM t_daily_bar": [
+                {"ts_code": "000001.SZ", "trade_date": "20260617", "vol": 100.0},
+                {"ts_code": "000001.SZ", "trade_date": "20260618", "vol": 100.0},
+                {"ts_code": "000001.SZ", "trade_date": "20260619", "vol": 100.0},
+                {"ts_code": "000001.SZ", "trade_date": "20260622", "vol": 100.0},
+                {"ts_code": "000001.SZ", "trade_date": "20260623", "vol": 100.0},
+                {"ts_code": "000001.SZ", "trade_date": "20260624", "vol": 250.0},
+            ]
+        }
+    )
+    service = DataIngestionService(client=object(), database=database)
+    spec = TableSpec(
+        "daily_basic",
+        "t_daily_basic",
+        ["ts_code", "trade_date", "turnover_rate", "volume_ratio", "circ_mv"],
+        ["ts_code", "trade_date"],
+    )
+
+    summary = service._upsert_records(
+        spec,
+        [
+            {
+                "ts_code": "000001.SZ",
+                "trade_date": "20260624",
+                "turnover_rate": 3.1,
+                "volume_ratio": None,
+                "circ_mv": 1000.0,
+            }
+        ],
+    )
+
+    upsert_call = next(call for call in database.calls if call[0] == "UPSERT t_daily_basic")
+    assert upsert_call[1][0] == ("000001.SZ", "20260624", 3.1, 2.5, 1000.0)
+    assert summary["null_fields"] == {}
+
+
+def test_strategy_volume_ratio_falls_back_to_daily_bar_series():
+    series = [
+        {"trade_date": "20260617", "vol": 100.0},
+        {"trade_date": "20260618", "vol": 100.0},
+        {"trade_date": "20260619", "vol": 100.0},
+        {"trade_date": "20260622", "vol": 100.0},
+        {"trade_date": "20260623", "vol": 100.0},
+        {"trade_date": "20260624", "vol": 250.0},
+    ]
+
+    assert DataIngestionService._compute_volume_ratio(series, 5) == 2.5
+
+
+def test_block_trade_fills_missing_premium_from_daily_close():
+    database = _FakeDatabase(
+        {
+            "FROM t_daily_bar": [
+                {"ts_code": "000001.SZ", "trade_date": "20260624", "close": 10.0},
+            ]
+        }
+    )
+    service = DataIngestionService(client=object(), database=database)
+    spec = TableSpec(
+        "block_trade",
+        "t_block_trade",
+        ["ts_code", "trade_date", "price", "vol", "amount", "premium"],
+        ["ts_code", "trade_date", "price", "vol"],
+    )
+
+    summary = service._upsert_records(
+        spec,
+        [
+            {
+                "ts_code": "000001.SZ",
+                "trade_date": "20260624",
+                "price": 10.5,
+                "vol": 20.0,
+                "amount": 210.0,
+                "premium": None,
+            }
+        ],
+    )
+
+    upsert_call = next(call for call in database.calls if call[0] == "UPSERT t_block_trade")
+    assert upsert_call[1][0] == ("000001.SZ", "20260624", 10.5, 20.0, 210.0, 5.0)
+    assert summary["null_fields"] == {}
 
 
 def test_monthly_sync_rebuilds_strategy_for_share_float_impact_dates(monkeypatch):
@@ -284,8 +371,8 @@ def test_capped_share_float_date_is_refetched_by_stock(monkeypatch):
     database = _FakeDatabase(
         {
             "SELECT ts_code FROM t_stock_basic": [
-                {"ts_code": "000001.SZ"},
-                {"ts_code": "000002.SZ"},
+                {"ts_code": "600001.SH"},
+                {"ts_code": "600002.SH"},
             ],
         }
     )
@@ -330,10 +417,67 @@ def test_capped_share_float_date_is_refetched_by_stock(monkeypatch):
 
     assert requested_params == [
         {"ann_date": "20260607"},
-        {"ann_date": "20260607", "ts_code": "000001.SZ"},
-        {"ann_date": "20260607", "ts_code": "000002.SZ"},
+        {"ann_date": "20260607", "ts_code": "600001.SH"},
+        {"ann_date": "20260607", "ts_code": "600002.SH"},
     ]
-    assert [record["ts_code"] for record in records] == ["000001.SZ", "000002.SZ"]
+    assert [record["ts_code"] for record in records[-2:]] == ["600001.SH", "600002.SH"]
+
+
+def test_capped_share_float_date_refetches_only_missing_stocks(monkeypatch):
+    database = _FakeDatabase(
+        {
+            "SELECT ts_code FROM t_stock_basic": [
+                {"ts_code": "000001.SZ"},
+                {"ts_code": "000002.SZ"},
+                {"ts_code": "000003.SZ"},
+            ],
+        }
+    )
+    service = DataIngestionService(client=object(), database=database, max_workers=1)
+    requested_params = []
+    capped_records = [
+        {
+            "ts_code": "000001.SZ" if index % 2 == 0 else "000002.SZ",
+            "ann_date": "20260607",
+            "float_date": "20260620",
+            "float_share": 100.0,
+            "float_ratio": 1.0,
+            "holder_name": f"holder-{index}",
+            "share_type": "type",
+        }
+        for index in range(6000)
+    ]
+
+    def fake_fetch(spec, params, use_thread_client=False):
+        requested_params.append(dict(params))
+        if "ts_code" not in params:
+            return capped_records
+        return [
+            {
+                "ts_code": params["ts_code"],
+                "ann_date": params["ann_date"],
+                "float_date": "20260620",
+                "float_share": 100.0,
+                "float_ratio": 1.0,
+                "holder_name": params["ts_code"],
+                "share_type": "type",
+            }
+        ]
+
+    monkeypatch.setattr(service, "_fetch_records", fake_fetch)
+
+    records = service._fetch_share_float_date_records(
+        _share_float_spec(),
+        "ann_date",
+        "20260607",
+    )
+
+    assert requested_params == [
+        {"ann_date": "20260607"},
+        {"ann_date": "20260607", "ts_code": "000003.SZ"},
+    ]
+    assert len(records) == 6001
+    assert records[-1]["ts_code"] == "000003.SZ"
 
 
 class _CheckpointDatabase:

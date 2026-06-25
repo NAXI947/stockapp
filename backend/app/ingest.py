@@ -111,7 +111,7 @@ ALL_DROP_TABLES = [
 PARAM_BATCH_SIZE = 500
 SHARE_FLOAT_ANN_LOOKBACK_DAYS = 30
 SHARE_FLOAT_TRADE_LOOKBACK_DAYS = 7
-SHARE_FLOAT_FUTURE_DAYS = 60
+SHARE_FLOAT_FUTURE_DAYS = 10
 DEFAULT_RETRY_MAX_ATTEMPTS = 3
 DEFAULT_RETRY_BASE_DELAY = 0.5
 DEFAULT_RETRY_MAX_DELAY = 8.0
@@ -1212,15 +1212,30 @@ class DataIngestionService:
 
         self._log(
             f"[warn] {spec.api_name} {field_name}={date_text} reached 6000-row limit; "
-            "refetching by ts_code"
+            "refetching missing ts_code rows"
         )
+        seen_ts_codes = {str(record.get('ts_code')) for record in records if record.get('ts_code')}
         stock_rows = self.database.fetch_all('SELECT ts_code FROM t_stock_basic ORDER BY ts_code')
         params_list = [
             {field_name: date_text, 'ts_code': row['ts_code']}
             for row in stock_rows
-            if row.get('ts_code')
+            if row.get('ts_code') and str(row['ts_code']) not in seen_ts_codes
         ]
-        return self._fetch_records_batch(spec, params_list)
+        if not params_list:
+            return self._deduplicate_records_by_key(spec, records)
+        return self._deduplicate_records_by_key(spec, records + self._fetch_records_batch(spec, params_list))
+
+    @staticmethod
+    def _deduplicate_records_by_key(spec: TableSpec, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        deduped: List[Dict[str, Any]] = []
+        seen: set[tuple[Any, ...]] = set()
+        for record in records:
+            key = tuple(record.get(column) for column in spec.key_columns)
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(record)
+        return deduped
 
     def _latest_trade_date(self) -> date | None:
         rows = self.database.fetch_all('SELECT MAX(trade_date) AS trade_date FROM t_daily_bar')
@@ -1432,6 +1447,10 @@ class DataIngestionService:
             self._unavailable_api_errors.setdefault(api_name, exc)
 
     def _upsert_records(self, spec: TableSpec, records: List[Dict[str, Any]]) -> Dict[str, Any]:
+        if spec.table_name == 't_daily_basic':
+            self._fill_daily_basic_volume_ratio(records)
+        if spec.table_name == 't_block_trade':
+            self._fill_block_trade_premium(records)
         if spec.table_name == 't_cyq_perf':
             for record in records:
                 c50 = record.get('cost_50')
@@ -1466,6 +1485,134 @@ class DataIngestionService:
         if record_metrics:
             summary['metrics'] = record_metrics
         return summary
+
+    def _fill_daily_basic_volume_ratio(self, records: List[Dict[str, Any]]) -> None:
+        pending = [
+            record
+            for record in records
+            if record.get('volume_ratio') in (None, '')
+            and record.get('ts_code')
+            and record.get('trade_date')
+        ]
+        if not pending:
+            return
+
+        trade_dates: List[str] = []
+        ts_codes: List[str] = []
+        for record in pending:
+            trade_dates.append(str(record['trade_date']))
+            ts_codes.append(str(record['ts_code']))
+
+        try:
+            min_trade_date = datetime.strptime(min(trade_dates), '%Y%m%d').date()
+            lower_bound = (min_trade_date - timedelta(days=90)).strftime('%Y%m%d')
+        except Exception:
+            lower_bound = min(trade_dates)
+        upper_bound = max(trade_dates)
+
+        rows_by_code: Dict[str, List[Dict[str, Any]]] = {}
+        for ts_code_batch in self._chunked_values(sorted(set(ts_codes)), 500):
+            placeholders = self._sql_placeholders(len(ts_code_batch))
+            rows = self.database.fetch_all(
+                f'''
+                SELECT ts_code, trade_date, vol
+                FROM t_daily_bar
+                WHERE ts_code IN ({placeholders})
+                  AND trade_date >= %s
+                  AND trade_date <= %s
+                ORDER BY ts_code, trade_date ASC
+                ''',
+                tuple(ts_code_batch + [lower_bound, upper_bound]),
+            )
+            for row in rows:
+                rows_by_code.setdefault(str(row['ts_code']), []).append(row)
+
+        index_by_code_date: Dict[tuple[str, str], int] = {}
+        for ts_code, series in rows_by_code.items():
+            for index, row in enumerate(series):
+                index_by_code_date[(ts_code, str(row['trade_date']))] = index
+
+        filled = 0
+        for record in pending:
+            ts_code = str(record['ts_code'])
+            trade_date = str(record['trade_date'])
+            series = rows_by_code.get(ts_code) or []
+            index = index_by_code_date.get((ts_code, trade_date))
+            if index is None:
+                continue
+            try:
+                current_vol = float(series[index]['vol'])
+            except (TypeError, ValueError):
+                continue
+            previous_volumes: List[float] = []
+            for row in reversed(series[:index]):
+                if len(previous_volumes) >= 5:
+                    break
+                try:
+                    previous_vol = float(row['vol'])
+                except (TypeError, ValueError):
+                    continue
+                if previous_vol > 0:
+                    previous_volumes.append(previous_vol)
+            if len(previous_volumes) < 5:
+                continue
+            avg_volume = sum(previous_volumes) / len(previous_volumes)
+            if avg_volume <= 0:
+                continue
+            record['volume_ratio'] = round(current_vol / avg_volume, 4)
+            filled += 1
+
+        if filled:
+            self._log(f"[info] filled t_daily_basic.volume_ratio from t_daily_bar rows={filled}")
+
+    def _fill_block_trade_premium(self, records: List[Dict[str, Any]]) -> None:
+        pending = [
+            record
+            for record in records
+            if record.get('premium') in (None, '')
+            and record.get('ts_code')
+            and record.get('trade_date')
+            and record.get('price') not in (None, '')
+        ]
+        if not pending:
+            return
+
+        trade_dates = sorted({str(record['trade_date']) for record in pending})
+        ts_codes = sorted({str(record['ts_code']) for record in pending})
+        close_by_key: Dict[tuple[str, str], float] = {}
+        date_placeholders = self._sql_placeholders(len(trade_dates))
+        for ts_code_batch in self._chunked_values(ts_codes, 500):
+            code_placeholders = self._sql_placeholders(len(ts_code_batch))
+            rows = self.database.fetch_all(
+                f'''
+                SELECT ts_code, trade_date, close
+                FROM t_daily_bar
+                WHERE ts_code IN ({code_placeholders})
+                  AND trade_date IN ({date_placeholders})
+                  AND close IS NOT NULL
+                  AND close > 0
+                ''',
+                tuple(ts_code_batch + trade_dates),
+            )
+            for row in rows:
+                close_by_key[(str(row['ts_code']), str(row['trade_date']))] = float(row['close'])
+
+        filled = 0
+        for record in pending:
+            ts_code = str(record['ts_code'])
+            trade_date = str(record['trade_date'])
+            close = close_by_key.get((ts_code, trade_date))
+            if close is None or close <= 0:
+                continue
+            try:
+                price = float(record['price'])
+            except (TypeError, ValueError):
+                continue
+            record['premium'] = round((price - close) / close * 100.0, 4)
+            filled += 1
+
+        if filled:
+            self._log(f"[info] filled t_block_trade.premium from t_daily_bar.close rows={filled}")
 
     @staticmethod
     def _merge_metrics_in_place(current: Dict[str, Any], incoming: Dict[str, Any]) -> None:
@@ -1700,7 +1847,7 @@ class DataIngestionService:
                         'trade_date': row['trade_date'],
                         'pct_chg': row_dict.get('pct_chg'),
                         'turnover_rate': row_dict.get('turnover_rate'),
-                        'volume_ratio': row_dict.get('volume_ratio'),
+                        'volume_ratio': row_dict.get('volume_ratio') or self._compute_volume_ratio(series, index),
                         'winner_rate': row_dict.get('winner_rate'),
                         'float_risk_7d': float_risk_7d,
                     }
@@ -1980,6 +2127,31 @@ class DataIngestionService:
         return round(sum(adjusted_prices) / window, 4)
 
     @staticmethod
+    def _compute_volume_ratio(series: List[Dict[str, Any]], index: int, window: int = 5) -> float | None:
+        if index < window:
+            return None
+        try:
+            current_vol = float(series[index].get('vol'))
+        except (TypeError, ValueError):
+            return None
+        previous_volumes: List[float] = []
+        for item in reversed(series[:index]):
+            if len(previous_volumes) >= window:
+                break
+            try:
+                previous_vol = float(item.get('vol'))
+            except (TypeError, ValueError):
+                continue
+            if previous_vol > 0:
+                previous_volumes.append(previous_vol)
+        if len(previous_volumes) < window:
+            return None
+        avg_volume = sum(previous_volumes) / len(previous_volumes)
+        if avg_volume <= 0:
+            return None
+        return round(current_vol / avg_volume, 4)
+
+    @staticmethod
     def _build_float_risk_map(rows: List[Dict[str, Any]]) -> Dict[str, List[tuple[date, float]]]:
         result: Dict[str, List[tuple[date, float]]] = {}
         for row in rows:
@@ -2226,7 +2398,7 @@ class DataIngestionService:
                         'trade_date': row['trade_date'],
                         'pct_chg': row_dict.get('pct_chg'),
                         'turnover_rate': row_dict.get('turnover_rate'),
-                        'volume_ratio': row_dict.get('volume_ratio'),
+                        'volume_ratio': row_dict.get('volume_ratio') or self._compute_volume_ratio(series, index),
                     }
                     record.update(res.extra_fields)
                     

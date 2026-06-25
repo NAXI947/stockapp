@@ -80,6 +80,58 @@ class FakeDatabase:
             return [{"trade_date": "20260310"}]
         if "FROM t_strategy_daily WHERE trade_date IN (" in compact_sql:
             return [{"ts_code": "000001.SZ", "trade_date": "20260310", "final_score": 65}]
+        if "FROM t_sniper_daily" in compact_sql:
+            if "WHERE ts_code = ?" in compact_sql:
+                # Detail sniper history query
+                if "LIMIT 7" in compact_sql:
+                    return [{
+                        "trade_date": "20260310",
+                        "final_score": 75,
+                        "pct_chg": 3.21,
+                        "turnover_rate": 4.2,
+                        "volume_ratio": 1.3,
+                        "rejected": 0,
+                        "reject_reason": "",
+                        "sniper_score": 75,
+                        "sniper_rejected": 0,
+                        "sniper_reject_reason": "",
+                        "s_holder_score": 10,
+                        "s_chip_vacuum_score": 10,
+                        "s_ma_state_score": 10,
+                        "s_safety_margin_score": 10,
+                        "s_macd_weekly_score": 5,
+                        "s_low_volume_score": 5,
+                        "s_golden_pit_score": 5,
+                        "s_ignition_score": 5,
+                        "s_top_list_score": 5,
+                        "s_news_score": 10,
+                        "s_base_total": 50,
+                        "s_dynamic_total": 25,
+                    }]
+                return [{
+                    "trade_date": "20260310",
+                    "final_score": 75,
+                    "pct_chg": 3.21,
+                    "turnover_rate": 4.2,
+                    "volume_ratio": 1.3,
+                    "rejected": 0,
+                    "reject_reason": "",
+                    "sniper_score": 75,
+                    "sniper_rejected": 0,
+                    "sniper_reject_reason": "",
+                    "s_holder_score": 10,
+                    "s_chip_vacuum_score": 10,
+                    "s_ma_state_score": 10,
+                    "s_safety_margin_score": 10,
+                    "s_macd_weekly_score": 5,
+                    "s_low_volume_score": 5,
+                    "s_golden_pit_score": 5,
+                    "s_ignition_score": 5,
+                    "s_top_list_score": 5,
+                    "s_news_score": 10,
+                    "s_base_total": 50,
+                    "s_dynamic_total": 25,
+                }]
         if "FROM t_strategy_daily" in compact_sql:
             if "WHERE ts_code = ?" in compact_sql:
                 if params and params[0] == "404.SZ":

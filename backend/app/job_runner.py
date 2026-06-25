@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 import traceback
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -27,6 +27,7 @@ class ManualJobTask:
     return_code: int | None = None
     message: str = ""
     log_file: str = ""
+    run_ids: list[int] = field(default_factory=list)
 
 
 JOB_DEFINITIONS: dict[str, dict[str, Any]] = {
@@ -55,6 +56,54 @@ _TASKS: dict[str, ManualJobTask] = {}
 _TASK_LOCK = threading.Lock()
 _RUN_LOCK = threading.Lock()
 MAX_MANUAL_TASKS = 6
+
+
+def _load_tasks() -> None:
+    tasks_file = runtime_root() / "logs" / "manual_jobs" / "tasks.json"
+    if not tasks_file.exists():
+        return
+    try:
+        import json
+        data = json.loads(tasks_file.read_text(encoding="utf-8"))
+        for k, v in data.items():
+            status = v["status"]
+            finished_at = v.get("finished_at")
+            message = v.get("message", "")
+            return_code = v.get("return_code")
+            if status == "running":
+                status = "failed"
+                finished_at = v["started_at"]
+                message = "已中断 (App重启/关闭)"
+                return_code = 1
+            _TASKS[k] = ManualJobTask(
+                task_id=v["task_id"],
+                job_name=v["job_name"],
+                label=v["label"],
+                status=status,
+                started_at=v["started_at"],
+                finished_at=finished_at,
+                return_code=return_code,
+                message=message,
+                log_file=v.get("log_file", ""),
+                run_ids=v.get("run_ids", []),
+            )
+    except Exception:
+        pass
+
+
+def _save_tasks_locked() -> None:
+    tasks_file = runtime_root() / "logs" / "manual_jobs" / "tasks.json"
+    tasks_file.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        import json
+        serialized = {k: asdict(v) for k, v in _TASKS.items()}
+        tasks_file.write_text(json.dumps(serialized, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+with _TASK_LOCK:
+    _load_tasks()
 
 
 def list_job_definitions() -> list[dict[str, str]]:
@@ -93,6 +142,7 @@ def run_manual_job(job_name: str, args: list[str] | None = None) -> ManualJobTas
     with _TASK_LOCK:
         _TASKS[task_id] = task
         _prune_tasks_locked()
+        _save_tasks_locked()
 
     thread = threading.Thread(target=_run_task, args=(task, safe_args), name=f"manual-job-{job_name}", daemon=True)
     thread.start()
@@ -119,16 +169,21 @@ def _prune_tasks_locked() -> None:
 
 
 def _run_task(task: ManualJobTask, args: list[str]) -> None:
+    from backend.app.local_job_log_store import thread_local_data
+    thread_local_data.run_ids = []
     try:
         with _RUN_LOCK:
             _execute_steps(task, args)
-        _finish_task(task, "success", 0, "完成")
+        run_ids = list(getattr(thread_local_data, 'run_ids', []))
+        _finish_task(task, "success", 0, "完成", run_ids)
     except SystemExit as exc:
         code = int(exc.code) if isinstance(exc.code, int) else 1
-        _finish_task(task, "success" if code == 0 else "failed", code, str(exc))
+        run_ids = list(getattr(thread_local_data, 'run_ids', []))
+        _finish_task(task, "success" if code == 0 else "failed", code, str(exc), run_ids)
     except Exception as exc:
         _append_log(task, traceback.format_exc())
-        _finish_task(task, "failed", 1, str(exc))
+        run_ids = list(getattr(thread_local_data, 'run_ids', []))
+        _finish_task(task, "failed", 1, str(exc), run_ids)
 
 
 def _execute_steps(task: ManualJobTask, run_args: list[str]) -> None:
@@ -158,12 +213,15 @@ def _execute_steps(task: ManualJobTask, run_args: list[str]) -> None:
             log.flush()
 
 
-def _finish_task(task: ManualJobTask, status: str, return_code: int, message: str) -> None:
+def _finish_task(task: ManualJobTask, status: str, return_code: int, message: str, run_ids: list[int] | None = None) -> None:
     with _TASK_LOCK:
         task.status = status
         task.return_code = return_code
         task.message = message
         task.finished_at = _now()
+        if run_ids is not None:
+            task.run_ids = run_ids
+        _save_tasks_locked()
     _append_log(task, f"[{task.finished_at}] {status}: {message}\n")
 
 
@@ -176,6 +234,37 @@ def _append_log(task: ManualJobTask, text: str) -> None:
 def _task_payload(task: ManualJobTask) -> dict[str, Any]:
     payload = asdict(task)
     payload["progress"] = _parse_log_progress(Path(task.log_file))
+
+    run_ids = task.run_ids or []
+    table_statuses = []
+    if run_ids:
+        try:
+            from backend.app.job_log_report import DEFAULT_LOG_DIR, _read_json_lines
+            table_records = _read_json_lines(DEFAULT_LOG_DIR / 'job_table.log')
+            matched_records = [r for r in table_records if r.get('run_id') in run_ids]
+            table_map = {}
+            for r in matched_records:
+                table_name = r.get('table_name')
+                if table_name and table_name != '__job__':
+                    table_map[table_name] = {
+                        'table_name': table_name,
+                        'fetched_rows': int(r.get('fetched_rows') or 0),
+                        'status': r.get('status', 'success'),
+                        'message': r.get('message', '')
+                    }
+            table_statuses = list(table_map.values())
+        except Exception:
+            pass
+
+    payload["tables"] = table_statuses
+    if table_statuses:
+        success_count = sum(1 for t in table_statuses if t['status'] == 'success')
+        payload["success_ratio"] = f"{success_count}/{len(table_statuses)}"
+        payload["success_percentage"] = round((success_count / len(table_statuses)) * 100)
+    else:
+        payload["success_ratio"] = "0/0"
+        payload["success_percentage"] = 0
+
     return payload
 
 
