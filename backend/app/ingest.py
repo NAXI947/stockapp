@@ -62,12 +62,6 @@ COMMON_DATE_SUPPLEMENTAL_SPECS = [
         ['ts_code', 'trade_date'],
     ),
     TableSpec(
-        'stk_holdernumber',
-        't_stk_holdernumber',
-        ['ts_code', 'ann_date', 'end_date', 'holder_num'],
-        ['ts_code', 'end_date'],
-    ),
-    TableSpec(
         'block_trade',
         't_block_trade',
         ['ts_code', 'trade_date', 'price', 'vol', 'amount', 'premium'],
@@ -100,7 +94,7 @@ FEATURED_DATE_SUPPLEMENTAL_SPECS = [
     ),
 ]
 
-DATE_DRIVEN_SUPPLEMENTAL_API_NAMES = {'top_list', 'cyq_perf', 'weekly', 'stk_holdernumber', 'block_trade'}
+DATE_DRIVEN_SUPPLEMENTAL_API_NAMES = {'top_list', 'cyq_perf', 'weekly', 'block_trade'}
 
 ALL_DROP_TABLES = [
     't_strategy_daily', 't_fin_indicator', 't_share_float', 't_top_list', 't_cyq_perf',
@@ -992,7 +986,7 @@ class DataIngestionService:
             except Exception as exc:
                 exc_str = str(exc)
                 is_permission_error = any(marker in exc_str for marker in ("权限", "积分", "抱歉", "privilege", "permission", "limit"))
-                if is_permission_error and spec.api_name in ('stk_holdernumber', 'block_trade', 'weekly'):
+                if is_permission_error and spec.api_name in ('block_trade', 'weekly'):
                     self._log(
                         f"[warn] skip {spec.table_name} because of Tushare permission/limit issues: {exc_str}"
                     )
@@ -1044,8 +1038,6 @@ class DataIngestionService:
             ]
         if api_name in ('cyq_perf', 'top_list', 'weekly', 'block_trade'):
             return [{'trade_date': trade_date} for trade_date in (trade_dates or [])]
-        if api_name == 'stk_holdernumber':
-            return [{'ann_date': trade_date} for trade_date in (trade_dates or [])]
         if api_name in ('share_float', 'fina_indicator'):
             rows = self.database.fetch_all('SELECT ts_code FROM t_stock_basic ORDER BY ts_code')
             return [{'ts_code': row['ts_code']} for row in rows]
@@ -2285,36 +2277,6 @@ class DataIngestionService:
             })
         return result
 
-    def _load_holder_data(self, ts_codes: List[str], trade_date: str | None) -> Dict[str, List[Dict[str, Any]]]:
-        if not ts_codes:
-            return {}
-        placeholders = ', '.join(['%s'] * len(ts_codes))
-        sql = f'''
-        SELECT ts_code, end_date, holder_num
-        FROM t_stk_holdernumber
-        WHERE ts_code IN ({placeholders})
-        '''
-        params = list(ts_codes)
-        if trade_date:
-            try:
-                target_dt = datetime.strptime(trade_date, '%Y%m%d').date()
-                lookback_start = (target_dt - timedelta(days=365)).strftime('%Y%m%d')
-            except Exception:
-                lookback_start = trade_date
-            sql += ' AND end_date <= %s AND end_date >= %s'
-            params.extend([trade_date, lookback_start])
-        sql += ' ORDER BY ts_code, end_date ASC'
-        
-        rows = self.database.fetch_all(sql, tuple(params))
-        result: Dict[str, List[Dict[str, Any]]] = {}
-        for row in rows:
-            ts_code = row['ts_code']
-            result.setdefault(ts_code, []).append({
-                'end_date': row['end_date'],
-                'holder_num': row['holder_num']
-            })
-        return result
-
     def _load_block_trade_data(self, ts_codes: List[str], trade_date: str | None) -> Dict[str, List[Dict[str, Any]]]:
         if not ts_codes:
             return {}
@@ -2359,7 +2321,6 @@ class DataIngestionService:
             
             top_list_map = self._load_top_list_3d(ts_code_batch, trade_date)
             weekly_map = self._load_weekly_series(ts_code_batch, trade_date)
-            holder_map = self._load_holder_data(ts_code_batch, trade_date)
             block_map = self._load_block_trade_data(ts_code_batch, trade_date)
 
             grouped_rows: Dict[str, List[Dict[str, Any]]] = {}
@@ -2372,7 +2333,6 @@ class DataIngestionService:
                 stock_name = stock_names.get(ts_code, '')
                 top_list_data = top_list_map.get(ts_code, [])
                 weekly_series = weekly_map.get(ts_code, [])
-                holder_data = holder_map.get(ts_code, [])
                 block_trade_data = block_map.get(ts_code, [])
                 
                 prev_row = None
@@ -2385,7 +2345,6 @@ class DataIngestionService:
                     res = strategy.calculate(
                         series, index, float_risk_7d, top_list_data, stock_name,
                         weekly_series=weekly_series,
-                        holder_data=holder_data,
                         block_trade_data=block_trade_data
                     )
                     
@@ -2406,7 +2365,7 @@ class DataIngestionService:
                     try:
                         if prev_row is None:
                             prev_row = self.database.fetch_one(
-                                """SELECT sniper_score, s_holder_score, s_chip_vacuum_score, s_ma_state_score, 
+                                """SELECT sniper_score, score_chaos, s_chip_vacuum_score, s_ma_state_score,
                                           s_safety_margin_score, s_macd_weekly_score, s_low_volume_score,
                                           s_golden_pit_score, s_ignition_score, s_top_list_score 
                                    FROM t_sniper_daily 
@@ -2420,7 +2379,7 @@ class DataIngestionService:
                             diff_score = curr_total - prev_total
                             
                             dimensions = {
-                                's_holder_score': "筹码结构与锁定",
+                                'score_chaos': "主力控盘度",
                                 's_chip_vacuum_score': "上方筹码真空度",
                                 's_ma_state_score': "均线状态",
                                 's_safety_margin_score': "安全边际",

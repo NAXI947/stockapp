@@ -1,6 +1,7 @@
-from math import sqrt
 from typing import Any, Dict, List
 from backend.app.strategy.base import StockStrategy, StrategyResult
+from backend.app.strategy.chaos import CHAOS_REJECTION_THRESHOLD, compute_chaos_score
+from backend.app.strategy.indicators import adjusted_moving_average, as_float, has_st_risk, latest_adjustment_factor
 
 class SniperStrategy(StockStrategy):
     """
@@ -15,6 +16,7 @@ class SniperStrategy(StockStrategy):
     def expected_fields(self) -> List[str]:
         return [
             'sniper_score', 'sniper_rejected', 'sniper_reject_reason',
+            'chaos_index_val', 'score_chaos',
             's_holder_score', 's_chip_vacuum_score', 's_ma_state_score',
             's_safety_margin_score', 's_macd_weekly_score',
             's_low_volume_score', 's_golden_pit_score', 's_ignition_score',
@@ -23,35 +25,13 @@ class SniperStrategy(StockStrategy):
         ]
 
     def _get_float(self, row: Any, key: str, default: float = None) -> float | None:
-        try:
-            val = row[key]
-            if val is None or str(val).strip() == '':
-                return default
-            return float(val)
-        except (KeyError, IndexError, TypeError, ValueError):
-            return default
+        return as_float(row, key, default)
 
     def _get_latest_adj_factor(self, series: List[Dict[str, Any]], index: int) -> float | None:
-        for i in range(index, -1, -1):
-            adj = self._get_float(series[i], 'adj_factor')
-            if adj and adj > 0:
-                return adj
-        return None
+        return latest_adjustment_factor(series, index)
 
     def _compute_adjusted_ma(self, series: List[Dict[str, Any]], index: int, window: int) -> float | None:
-        if index + 1 < window:
-            return None
-        current_adj = self._get_latest_adj_factor(series, index)
-        if not current_adj:
-            return None
-        adjusted_prices: List[float] = []
-        for item in series[index - window + 1 : index + 1]:
-            close = self._get_float(item, 'close')
-            if close is None:
-                return None
-            adj_factor = self._get_float(item, 'adj_factor') or current_adj 
-            adjusted_prices.append(close * adj_factor / current_adj)
-        return round(sum(adjusted_prices) / window, 4)
+        return adjusted_moving_average(series, index, window)
 
     def _calculate_weekly_macd(self, weekly_series: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -99,9 +79,17 @@ class SniperStrategy(StockStrategy):
         return result
 
     def _check_st_risk(self, name: str | None) -> bool:
-        if not name:
-            return False
-        return 'ST' in name.upper() or '*ST' in name.upper()
+        return has_st_risk(name)
+
+    def _compute_chaos_score(
+        self,
+        series: List[Dict[str, Any]],
+        target_index: int,
+        window: int = 20,
+    ) -> tuple[float | None, int]:
+        """计算量价无序度；需要 20 个摩擦观测和第 20 日前收盘，共 21 行。"""
+        result = compute_chaos_score(series, target_index, window)
+        return result.value, result.score
 
     def calculate(
         self,
@@ -111,7 +99,6 @@ class SniperStrategy(StockStrategy):
         top_list_data: List[Dict] = None,
         stock_name: str = None,
         weekly_series: List[Dict[str, Any]] = None,
-        holder_data: List[Dict[str, Any]] = None,
         block_trade_data: List[Dict[str, Any]] = None,
     ) -> StrategyResult | None:
         row = series[target_index]
@@ -123,6 +110,7 @@ class SniperStrategy(StockStrategy):
         pct_chg = self._get_float(row, 'pct_chg')
         turnover_rate = self._get_float(row, 'turnover_rate', 0.0)
         volume_ratio = self._get_float(row, 'volume_ratio', 0.0)
+        chaos_index_val, score_chaos = self._compute_chaos_score(series, target_index)
 
         # MAs
         ma5 = self._compute_adjusted_ma(series, target_index, 5)
@@ -162,51 +150,16 @@ class SniperStrategy(StockStrategy):
                         rejected = 1
                         reject_reason = "WEEKLY_MACD_DEAD"
 
-        # 筹码大幅分散（股东户数环比骤增 > 15%）
-        if not rejected and holder_data:
-            # Filter holder data up to target trade_date
-            sub_holders = [h for h in holder_data if h.get('end_date', '') <= trade_date]
-            sub_holders = sorted(sub_holders, key=lambda x: x.get('end_date', ''), reverse=True)
-            if len(sub_holders) >= 2:
-                latest_h = sub_holders[0].get('holder_num')
-                prev_h = sub_holders[1].get('holder_num')
-                if latest_h and prev_h and prev_h > 0:
-                    h_ratio = (latest_h - prev_h) / prev_h
-                    if h_ratio > 0.15:
-                        rejected = 1
-                        reject_reason = "HOLDER_SURGE"
+        # 量价无序度达到最高风险档：散户博弈剧烈，触发原 HOLDER_SURGE 拒绝码。
+        if not rejected and chaos_index_val is not None and chaos_index_val >= CHAOS_REJECTION_THRESHOLD:
+            rejected = 1
+            reject_reason = "HOLDER_SURGE"
 
         # 🧱 2. 静态底座评分 (60分)
         
-        # 2.1 筹码结构与锁定 (15分)
-        s_holder_score = 8 # Default fallback
-        if holder_data:
-            sub_holders = [h for h in holder_data if h.get('end_date', '') <= trade_date]
-            sub_holders = sorted(sub_holders, key=lambda x: x.get('end_date', ''), reverse=True)
-            if len(sub_holders) >= 2:
-                h_latest = sub_holders[0].get('holder_num')
-                h_prev1 = sub_holders[1].get('holder_num')
-                h_prev2 = sub_holders[2].get('holder_num') if len(sub_holders) >= 3 else None
-                
-                # Check consecutive drops
-                consec_drop = False
-                if h_latest and h_prev1 and h_latest < h_prev1:
-                    if h_prev2 and h_prev1 < h_prev2:
-                        consec_drop = True
-                
-                # Check cumulative drop
-                cum_drop = 0.0
-                if h_latest and h_prev1 and h_prev1 > 0:
-                    cum_drop = (h_latest - h_prev1) / h_prev1
-                
-                if consec_drop or cum_drop < -0.05:
-                    s_holder_score = 15
-                elif cum_drop > 0.01:
-                    s_holder_score = 3
-                else:
-                    s_holder_score = 8
-            elif len(sub_holders) == 1:
-                s_holder_score = 8
+        # 2.1 主力控盘度（量价无序度，15分）
+        # s_holder_score 暂作兼容别名，值与 score_chaos 保持一致。
+        s_holder_score = score_chaos
 
         # 2.2 上方筹码真空度 (10分)
         s_chip_vacuum_score = 0
@@ -378,7 +331,7 @@ class SniperStrategy(StockStrategy):
         s_news_score = 0
 
         # Sum up
-        s_base_total = s_holder_score + s_chip_vacuum_score + s_ma_state_score + s_safety_margin_score + s_macd_weekly_score
+        s_base_total = score_chaos + s_chip_vacuum_score + s_ma_state_score + s_safety_margin_score + s_macd_weekly_score
         s_dynamic_total = s_low_volume_score + s_golden_pit_score + s_ignition_score + s_top_list_score + s_news_score
         
         sniper_score = s_base_total + s_dynamic_total if not rejected else 0
@@ -387,6 +340,8 @@ class SniperStrategy(StockStrategy):
             'sniper_score': sniper_score,
             'sniper_rejected': rejected,
             'sniper_reject_reason': reject_reason,
+            'chaos_index_val': chaos_index_val,
+            'score_chaos': score_chaos,
             's_holder_score': s_holder_score,
             's_chip_vacuum_score': s_chip_vacuum_score,
             's_ma_state_score': s_ma_state_score,

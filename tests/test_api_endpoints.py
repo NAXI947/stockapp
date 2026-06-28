@@ -21,6 +21,40 @@ class FakeDatabase:
         compact_sql = " ".join(str(sql).split())
         if "SELECT MAX(trade_date) AS trade_date FROM t_strategy_daily" in compact_sql and "WHERE ts_code" not in compact_sql:
             return [{"trade_date": "20260310"}]
+        if "SELECT MAX(trade_date) AS trade_date FROM t_sniper_daily" in compact_sql and "WHERE ts_code" not in compact_sql:
+            return [{"trade_date": "20260310"}]
+        if "FROM t_sniper_daily s LEFT JOIN t_stock_basic b" in compact_sql:
+            return [{
+                "ts_code": "000001.SZ",
+                "name": "平安银行",
+                "industry": "银行",
+                "pct_chg": 2.34,
+                "turnover_rate": 3.21,
+                "volume_ratio": 1.45,
+                "winner_rate": 82.6,
+                "final_score": 75,
+                "sniper_score": 75,
+                "rejected": 0,
+                "sniper_rejected": 0,
+            }]
+        if "FROM t_sniper_daily s LEFT JOIN t_cyq_perf c" in compact_sql:
+            return [{
+                "cost_50": 10.5,
+                "cost_85": 11.8,
+                "winner_rate": 76.2,
+                "final_score": 75,
+                "pct_chg": 3.21,
+                "turnover_rate": 4.2,
+                "volume_ratio": 1.3,
+                "sniper_score": 75,
+                "rejected": 0,
+                "reject_reason": "",
+                "sniper_rejected": 0,
+                "sniper_reject_reason": "",
+                "chaos_index_val": 2.1,
+                "score_chaos": 10,
+                "s_holder_score": 10,
+            }]
         if "FROM t_strategy_daily s LEFT JOIN t_stock_basic b" in compact_sql:
             return [
                 {
@@ -78,8 +112,12 @@ class FakeDatabase:
             ]
         if "SELECT DISTINCT trade_date FROM t_strategy_daily WHERE trade_date <= ?" in compact_sql:
             return [{"trade_date": "20260310"}]
+        if "SELECT DISTINCT trade_date FROM t_sniper_daily WHERE trade_date <= ?" in compact_sql:
+            return [{"trade_date": "20260310"}]
         if "FROM t_strategy_daily WHERE trade_date IN (" in compact_sql:
             return [{"ts_code": "000001.SZ", "trade_date": "20260310", "final_score": 65}]
+        if "FROM t_sniper_daily WHERE trade_date IN (" in compact_sql:
+            return [{"ts_code": "000001.SZ", "trade_date": "20260310", "final_score": 75}]
         if "FROM t_sniper_daily" in compact_sql:
             if "WHERE ts_code = ?" in compact_sql:
                 # Detail sniper history query
@@ -96,6 +134,8 @@ class FakeDatabase:
                         "sniper_rejected": 0,
                         "sniper_reject_reason": "",
                         "s_holder_score": 10,
+                        "chaos_index_val": 2.1,
+                        "score_chaos": 10,
                         "s_chip_vacuum_score": 10,
                         "s_ma_state_score": 10,
                         "s_safety_margin_score": 10,
@@ -120,6 +160,8 @@ class FakeDatabase:
                     "sniper_rejected": 0,
                     "sniper_reject_reason": "",
                     "s_holder_score": 10,
+                    "chaos_index_val": 2.1,
+                    "score_chaos": 10,
                     "s_chip_vacuum_score": 10,
                     "s_ma_state_score": 10,
                     "s_safety_margin_score": 10,
@@ -248,6 +290,13 @@ class CoreApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["data"][0]["ts_code"], "000001.SZ")
 
+    def test_get_sniper_picks_returns_winner_rate(self) -> None:
+        with api_client() as client:
+            response = client.get("/api/v1/picks", params={"is_sniper": "true"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["data"][0]["winner_rate"], 82.6)
+
     def test_get_kline_returns_chronological_rows(self) -> None:
         with api_client() as client:
             response = client.get("/api/v1/kline/000001.SZ", params={"limit": 2})
@@ -271,6 +320,19 @@ class CoreApiTest(unittest.TestCase):
             response = client.get("/api/v1/detail/404.SZ")
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["detail"], "stock not found")
+
+    def test_get_sniper_detail_returns_chaos_trend(self) -> None:
+        with api_client() as client:
+            response = client.get("/api/v1/detail/000001.SZ", params={"is_sniper": "true"})
+
+        payload = response.json()["data"]
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["chaos_index_val"], 2.1)
+        self.assertEqual(payload["score_chaos"], 10)
+        self.assertEqual(payload["sniper_rejected"], 0)
+        self.assertEqual(payload["sniper_reject_reason"], "")
+        self.assertEqual(payload["sniper_history_7d"][0]["chaos_index_val"], 2.1)
+        self.assertEqual(payload["sniper_history_7d"][0]["score_chaos"], 10)
 
     def test_stock_advice_returns_rule_based_markdown(self) -> None:
         mocked_advice = {

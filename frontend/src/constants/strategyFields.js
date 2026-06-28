@@ -18,6 +18,8 @@ export const STRATEGY_FIELD_LABELS = {
   bull_trend: '多头趋势',
   float_risk_7d: '7日解禁风险',
   final_score: '策略分',
+  chaos_index_val: '量价无序度',
+  score_chaos: '主力控盘度评分',
   trend_baseline: '趋势基线',
   chip_vacuum: '筹码真空',
   kline_body: 'K线实体',
@@ -40,6 +42,7 @@ export const REJECT_REASON_LABELS = {
   margin: '安全边际不足',
   data: '历史数据不足',
   ST: 'ST风险',
+  HOLDER_SURGE: '量价无序度过高',
 }
 
 export function getStrategyFieldLabel(key) {

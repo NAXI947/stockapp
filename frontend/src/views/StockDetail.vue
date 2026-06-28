@@ -9,6 +9,40 @@
         ← 返回
       </button>
     </div>
+
+    <!-- 指标分页 -->
+    <div
+      class="mb-6 inline-flex rounded-lg bg-gray-100 p-1 shadow-inner"
+      role="tablist"
+      aria-label="个股指标切换"
+    >
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="!isSniper"
+        :disabled="loading"
+        @click="switchIndicator('breakout')"
+        class="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:cursor-wait"
+        :class="!isSniper
+          ? 'bg-white text-blue-700 shadow-sm'
+          : 'text-gray-600 hover:text-gray-900'"
+      >
+        🔥 爆发右侧
+      </button>
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="isSniper"
+        :disabled="loading"
+        @click="switchIndicator('sniper')"
+        class="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:cursor-wait"
+        :class="isSniper
+          ? 'bg-white text-purple-700 shadow-sm'
+          : 'text-gray-600 hover:text-gray-900'"
+      >
+        🎯 极简狙击手
+      </button>
+    </div>
     
     <!-- 加载中 -->
     <Loading v-if="loading" />
@@ -122,40 +156,14 @@
         </div>
 
         <!-- 7日总评分趋势可视化 -->
-        <div class="mt-4 pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- 爆发右侧 -->
-          <div v-if="detail.history_7d && detail.history_7d.length" class="border-r pr-2 border-gray-100 last:border-r-0">
-            <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势 (爆发右侧)</p>
+        <div v-if="indicatorHistory.length" class="mt-4 pt-4 border-t">
+          <div>
+            <p class="text-xs font-semibold text-gray-700 mb-2">
+              7日总评分走势 ({{ isSniper ? '极简狙击手' : '爆发右侧' }})
+            </p>
             <div class="flex items-center space-x-1 overflow-x-auto pb-1">
               <div
-                v-for="h in detail.history_7d"
-                :key="h.trade_date"
-                class="flex flex-col items-center shrink-0 w-12"
-              >
-                <div class="text-[9px] text-gray-400 font-mono">{{ h.trade_date.slice(4) }}</div>
-                <div
-                  class="w-8 h-10 flex items-end justify-center bg-gray-50 rounded mt-0.5 border border-gray-100"
-                  :title="`${h.trade_date}: ${h.final_score}分`"
-                >
-                  <div
-                    class="w-4 rounded-t transition-all duration-300"
-                    :class="h.final_score >= 70 ? 'bg-emerald-500' : (h.final_score >= 50 ? 'bg-yellow-500' : 'bg-gray-400')"
-                    :style="`height: ${Math.max(10, (h.final_score / 100) * 100)}%`"
-                  ></div>
-                </div>
-                <div class="text-[10px] font-semibold mt-0.5 font-mono" :class="getScoreClass(h.final_score)">
-                  {{ h.final_score }}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 极简狙击手 -->
-          <div v-if="detail.sniper_history_7d && detail.sniper_history_7d.length">
-            <p class="text-xs font-semibold text-gray-700 mb-2">7日总评分走势 (极简狙击手)</p>
-            <div class="flex items-center space-x-1 overflow-x-auto pb-1">
-              <div
-                v-for="h in detail.sniper_history_7d"
+                v-for="h in indicatorHistory"
                 :key="h.trade_date"
                 class="flex flex-col items-center shrink-0 w-12"
               >
@@ -259,7 +267,7 @@
       </div>
 
       <!-- 15个细分评分项 7天评分趋势 -->
-      <div class="bg-white rounded-lg shadow p-4" v-if="detail.history_7d && detail.history_7d.length">
+      <div class="bg-white rounded-lg shadow p-4" v-if="indicatorHistory.length">
         <div class="flex items-start justify-between gap-4 mb-4">
           <div>
             <h3 class="text-sm font-semibold text-gray-900">15个细分指标 7天评分变动趋势</h3>
@@ -286,9 +294,23 @@
               <p class="text-[10px] text-gray-400 mt-0.5 leading-tight">{{ ind.description }}</p>
             </div>
 
-            <!-- 7天每日状态灯 -->
+            <!-- 7天每日状态灯；主力控盘度使用原始无序度控制柱高、评分控制颜色 -->
             <div class="mt-2.5">
-              <div class="flex space-x-1">
+              <div v-if="ind.isChaos" class="flex items-end space-x-1 h-10">
+                <div
+                  v-for="(histVal, hidx) in ind.trend"
+                  :key="hidx"
+                  class="flex-1 h-10 flex items-end justify-center"
+                >
+                  <div
+                    class="w-full max-w-3 rounded-t transition-all duration-200"
+                    :class="chaosBarClass(histVal.score)"
+                    :style="{ height: `${chaosBarHeight(histVal.value)}px` }"
+                    :title="`${indicatorHistory[hidx]?.trade_date}: 无序度 ${histVal.value ?? '-'}，${histVal.score ?? 0}分`"
+                  ></div>
+                </div>
+              </div>
+              <div v-else class="flex space-x-1">
                 <div
                   v-for="(histVal, hidx) in ind.trend"
                   :key="hidx"
@@ -297,13 +319,13 @@
                   <div
                     class="h-2 rounded-xs transition-colors duration-200"
                     :class="histVal ? (ind.isPenalty ? 'bg-red-500' : 'bg-emerald-500') : 'bg-gray-200'"
-                    :title="`${detail.history_7d[hidx]?.trade_date}: ${histVal ? '达成' : '未达成'}`"
+                    :title="`${indicatorHistory[hidx]?.trade_date}: ${histVal ? '达成' : '未达成'}`"
                   ></div>
                 </div>
               </div>
               <div class="flex justify-between text-[8px] text-gray-400 mt-0.5 font-mono leading-none">
-                <span>{{ detail.history_7d[0]?.trade_date.slice(4) }}</span>
-                <span>{{ detail.history_7d[detail.history_7d.length - 1]?.trade_date.slice(4) }}</span>
+                <span>{{ indicatorHistory[0]?.trade_date.slice(4) }}</span>
+                <span>{{ indicatorHistory[indicatorHistory.length - 1]?.trade_date.slice(4) }}</span>
               </div>
             </div>
           </div>
@@ -551,19 +573,38 @@ const latestKline = computed(() => {
   return kline.value[kline.value.length - 1]
 })
 
+const indicatorHistory = computed(() => (
+  isSniper.value
+    ? (detail.value?.sniper_history_7d || [])
+    : (detail.value?.history_7d || [])
+))
+
+function chaosBarHeight(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric < 0) return 2
+  return Math.min(Math.max((numeric / 10) * 40, 2), 40)
+}
+
+function chaosBarClass(score) {
+  if (Number(score) === 15) return 'bg-emerald-500'
+  if (Number(score) === 10) return 'bg-green-400'
+  if (Number(score) === 5) return 'bg-yellow-400'
+  return 'bg-gray-300'
+}
+
 const baseScoreItems = computed(() => {
   const latest = detail.value || {}
 
   if (isSniper.value) {
     return [
       {
-        key: 'holder_lock',
-        label: '筹码结构与锁定',
-        scoreValue: latest.s_holder_score,
-        scoreLabel: `${latest.s_holder_score ?? 0} / 15`,
-        ruleLabel: (latest.s_holder_score || 0) >= 15 ? '筹码集中' : ((latest.s_holder_score || 0) >= 8 ? '相对稳定' : '筹码分散'),
-        description: '股东户数连降/降幅较大加分，最高 15 分',
-        active: (latest.s_holder_score || 0) >= 8
+        key: 'main_control_chaos',
+        label: '主力控盘度',
+        scoreValue: latest.score_chaos,
+        scoreLabel: `${latest.score_chaos ?? 0} / 15`,
+        ruleLabel: (latest.score_chaos || 0) >= 15 ? '高度控盘' : ((latest.score_chaos || 0) >= 10 ? '趋势稳定' : '浮筹偏多'),
+        description: '量价无序度越低，盘面浮筹越少，最高 15 分',
+        active: (latest.score_chaos || 0) >= 10
       },
       {
         key: 'chip_vacuum',
@@ -852,10 +893,10 @@ const detailIndicators = computed(() => {
       },
       {
         key: 'holder_surge',
-        label: '筹码大幅分散',
-        description: '股东户数环比骤增超过 15%，触发直接淘汰',
+        label: '无序度过高',
+        description: '量价无序度达到 8 或以上，触发 HOLDER_SURGE 直接淘汰',
         latestActive: !!latest.sniper_rejected && latest.sniper_reject_reason === 'HOLDER_SURGE',
-        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'HOLDER_SURGE') ? '骤增 (直接过滤)' : '通过',
+        latestValue: (latest.sniper_rejected && latest.sniper_reject_reason === 'HOLDER_SURGE') ? '无序 (直接过滤)' : '通过',
         trend: history.map(h => !!h.sniper_rejected && h.sniper_reject_reason === 'HOLDER_SURGE'),
         isPenalty: true,
       },
@@ -869,12 +910,13 @@ const detailIndicators = computed(() => {
         isPenalty: true,
       },
       {
-        key: 'holder_lock',
-        label: '筹码结构与锁定',
-        description: '股东户数连降或累计降幅大于 5%',
-        latestActive: (latest.s_holder_score || 0) >= 8,
-        latestValue: latest.s_holder_score != null ? `${latest.s_holder_score}分` : '-',
-        trend: history.map(h => (h.s_holder_score || 0) >= 8),
+        key: 'main_control_chaos',
+        label: '主力控盘度 (量价无序度)',
+        description: '结合日级量价无序度综合判定，无序度越低，盘面浮筹越少。',
+        latestActive: (latest.score_chaos || 0) >= 10,
+        latestValue: latest.chaos_index_val != null ? `${latest.chaos_index_val} / ${latest.score_chaos || 0}分` : '数据不足',
+        trend: history.map(h => ({ value: h.chaos_index_val, score: h.score_chaos || 0 })),
+        isChaos: true,
       },
       {
         key: 'chip_vacuum',
@@ -1264,6 +1306,22 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
+}
+
+async function switchIndicator(indicator) {
+  const nextIsSniper = indicator === 'sniper'
+  if (nextIsSniper === isSniper.value || loading.value) return
+
+  const query = { ...route.query }
+  if (nextIsSniper) {
+    query.is_sniper = 'true'
+  } else {
+    delete query.is_sniper
+  }
+
+  await router.replace({ query })
+  advice.value = null
+  await fetchData()
 }
 
 async function fetchAdvice() {

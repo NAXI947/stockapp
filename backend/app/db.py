@@ -236,6 +236,12 @@ class Database:
                             cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN ma10 REAL")
                         if 'trend_reason' not in columns:
                             cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN trend_reason TEXT")
+                        cursor.execute("PRAGMA table_info(t_sniper_daily)")
+                        sniper_columns = [row[1] for row in cursor.fetchall()]
+                        if 'chaos_index_val' not in sniper_columns:
+                            cursor.execute("ALTER TABLE t_sniper_daily ADD COLUMN chaos_index_val REAL DEFAULT NULL")
+                        if 'score_chaos' not in sniper_columns:
+                            cursor.execute("ALTER TABLE t_sniper_daily ADD COLUMN score_chaos INTEGER NOT NULL DEFAULT 0")
                     except Exception as e:
                         print(f"[db migration] Failed to check/add columns: {e}")
                     connection.commit()
@@ -252,6 +258,12 @@ class Database:
                     cursor.execute("SHOW COLUMNS FROM t_strategy_daily LIKE 'trend_reason'")
                     if not cursor.fetchone():
                         cursor.execute("ALTER TABLE t_strategy_daily ADD COLUMN trend_reason TEXT")
+                    cursor.execute("SHOW COLUMNS FROM t_sniper_daily LIKE 'chaos_index_val'")
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE t_sniper_daily ADD COLUMN chaos_index_val DOUBLE DEFAULT NULL")
+                    cursor.execute("SHOW COLUMNS FROM t_sniper_daily LIKE 'score_chaos'")
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE t_sniper_daily ADD COLUMN score_chaos INT NOT NULL DEFAULT 0")
                 except Exception as e:
                     print(f"[db migration] Failed to check/add columns in MySQL: {e}")
                 connection.commit()

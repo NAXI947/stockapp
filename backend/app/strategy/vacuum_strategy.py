@@ -1,6 +1,7 @@
 from math import sqrt
 from typing import Any, Dict, List
 from backend.app.strategy.base import StockStrategy, StrategyResult
+from backend.app.strategy.indicators import adjusted_moving_average, as_float, has_st_risk, latest_adjustment_factor
 
 class VacuumStrategy(StockStrategy):
     """
@@ -27,42 +28,15 @@ class VacuumStrategy(StockStrategy):
     
     def _get_float(self, row: Any, key: str, default: float = None) -> float | None:
         """安全获取浮点数，彻底根除 TypeError 和 Decimal 比较崩溃"""
-        try:
-            val = row[key]
-            if val is None or str(val).strip() == '':
-                return default
-            return float(val)
-        except (KeyError, IndexError, TypeError, ValueError):
-            return default
+        return as_float(row, key, default)
 
     def _get_latest_adj_factor(self, series: List[Dict[str, Any]], index: int) -> float | None:
         """安全获取复权因子：如果当日缺失，向前回溯寻找最近的有效值"""
-        for i in range(index, -1, -1):
-            adj = self._get_float(series[i], 'adj_factor')
-            if adj and adj > 0:
-                return adj
-        return None
+        return latest_adjustment_factor(series, index)
 
     def _compute_adjusted_ma(self, series: List[Dict[str, Any]], index: int, window: int) -> float | None:
         """计算复权均线（带复权因子回落容错）"""
-        if index + 1 < window:
-            return None
-            
-        current_adj = self._get_latest_adj_factor(series, index)
-        if not current_adj:
-            return None
-            
-        adjusted_prices: List[float] = []
-        for item in series[index - window + 1 : index + 1]:
-            close = self._get_float(item, 'close')
-            if close is None:
-                return None
-                
-            # 如果历史某天缺失 adj_factor，使用当天的兜底
-            adj_factor = self._get_float(item, 'adj_factor') or current_adj 
-            adjusted_prices.append(close * adj_factor / current_adj)
-            
-        return round(sum(adjusted_prices) / window, 4)
+        return adjusted_moving_average(series, index, window)
 
     def _compute_upper_space(self, series: List[Dict[str, Any]], index: int) -> float | None:
         """计算上方空间：现价距离近250日复权最高点的百分比"""
@@ -154,15 +128,14 @@ class VacuumStrategy(StockStrategy):
         else: return 0
 
     def _check_st_risk(self, name: str | None) -> bool:
-        if not name:
-            return False
-        return 'ST' in name.upper() or '*ST' in name.upper()
+        return has_st_risk(name)
 
     # ================= 核心策略引擎 =================
     
-    def calculate(self, series: List[Dict[str, Any]], target_index: int, 
-                  float_risk: int, top_list_data: List[Dict] = None, 
-                  stock_name: str = None) -> StrategyResult | None:
+    def calculate(self, series: List[Dict[str, Any]], target_index: int,
+                  float_risk: int, top_list_data: List[Dict] = None,
+                  stock_name: str = None, weekly_series: List[Dict[str, Any]] = None,
+                  block_trade_data: List[Dict[str, Any]] = None) -> StrategyResult | None:
         
         row = series[target_index]
         close = self._get_float(row, 'close')

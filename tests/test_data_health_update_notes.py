@@ -23,6 +23,14 @@ class DataHealthUpdateNotesTest(unittest.TestCase):
 
         self.assertIn("全量年更", fin_spec["updater"])
 
+    def test_chaos_fields_replace_shareholder_count_health_surface(self) -> None:
+        tables = {spec["table"]: spec for spec in TABLE_SPECS}
+
+        self.assertNotIn("t_stk_holdernumber", tables)
+        self.assertIn("t_sniper_daily", tables)
+        self.assertIn("chaos_index_val", tables["t_sniper_daily"]["fields"])
+        self.assertIn("score_chaos", tables["t_sniper_daily"]["fields"])
+
 
 if __name__ == "__main__":
     unittest.main()

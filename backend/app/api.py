@@ -57,13 +57,12 @@ from backend.app.runtime_config import get_runtime_jobs_config, set_runtime_jobs
 from backend.app.utils import to_float, to_int, parse_extra_json, row_get
 from backend.core.deps import get_prepared_database
 
-router = APIRouter(prefix="/api/v1")
+API_PREFIX = "/api/v1"
+
+router = APIRouter(prefix=API_PREFIX)
 
 
-router = APIRouter(prefix="/api/v1")
-
-
-@router.get("/picks", response_model=PicksResponse)
+@router.get("/picks", response_model=PicksResponse, tags=["stocks"])
 def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bool = False, database=Depends(get_prepared_database)):
     target_date = date
     if not target_date:
@@ -103,9 +102,10 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bo
         rows = database.fetch_all(
             """
             SELECT s.ts_code, b.name, b.industry, s.pct_chg, s.turnover_rate,
-                   s.volume_ratio, s.sniper_score as final_score, s.sniper_score,
+                   s.volume_ratio, c.winner_rate, s.sniper_score as final_score, s.sniper_score,
                    s.sniper_rejected as rejected, s.sniper_rejected, s.sniper_reject_reason as reject_reason, s.sniper_reject_reason,
-                   s.s_holder_score, s.s_chip_vacuum_score, s.s_ma_state_score,
+                   s.chaos_index_val, s.score_chaos, s.s_holder_score,
+                   s.s_chip_vacuum_score, s.s_ma_state_score,
                    s.s_safety_margin_score, s.s_macd_weekly_score, s.s_low_volume_score,
                    s.s_golden_pit_score, s.s_ignition_score, s.s_top_list_score,
                    s.s_news_score, s.s_base_total, s.s_dynamic_total,
@@ -118,6 +118,7 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bo
                     ), s.sniper_score)) AS score_change
             FROM t_sniper_daily s
             LEFT JOIN t_stock_basic b ON b.ts_code = s.ts_code
+            LEFT JOIN t_cyq_perf c ON c.ts_code = s.ts_code AND c.trade_date = s.trade_date
             WHERE s.trade_date = %s
             ORDER BY s.sniper_score DESC, s.ts_code ASC
             LIMIT 10
@@ -200,7 +201,7 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bo
             "pct_chg": to_float(row_get(row, "pct_chg")),
             "turnover_rate": to_float(row_get(row, "turnover_rate")),
             "volume_ratio": to_float(row_get(row, "volume_ratio")),
-            "winner_rate": to_float(row_get(row, "winner_rate")) if not is_sniper else None,
+            "winner_rate": to_float(row_get(row, "winner_rate")),
             "upper_space": to_float(row_get(row, "upper_space")) if not is_sniper else None,
             "vol_score": to_float(row_get(row, "vol_score")) if not is_sniper else None,
             "final_score": to_int(row_get(row, "final_score")),
@@ -228,6 +229,8 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bo
             "sniper_rejected": to_int(row_get(row, "sniper_rejected")) if is_sniper else None,
             "sniper_reject_reason": row_get(row, "sniper_reject_reason") if is_sniper else None,
             "s_holder_score": to_int(row_get(row, "s_holder_score")) if is_sniper else None,
+            "chaos_index_val": to_float(row_get(row, "chaos_index_val")) if is_sniper else None,
+            "score_chaos": to_int(row_get(row, "score_chaos")) if is_sniper else None,
             "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")) if is_sniper else None,
             "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")) if is_sniper else None,
             "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")) if is_sniper else None,
@@ -244,7 +247,7 @@ def get_picks(date: Optional[str] = None, is_ambush: bool = False, is_sniper: bo
     ]
     return PicksResponse(data=items)
 
-@router.get("/kline/{ts_code}", response_model=KlineResponse)
+@router.get("/kline/{ts_code}", response_model=KlineResponse, tags=["stocks"])
 def get_kline(ts_code: str, limit: int = 60, database=Depends(get_prepared_database)):
     sql = """
     SELECT d.trade_date, d.open, d.close, d.low, d.high, d.vol, d.amount, d.pct_chg,
@@ -277,7 +280,7 @@ def get_kline(ts_code: str, limit: int = 60, database=Depends(get_prepared_datab
     return KlineResponse(data=data)
 
 
-@router.get("/detail/{ts_code}", response_model=DetailResponse)
+@router.get("/detail/{ts_code}", response_model=DetailResponse, tags=["stocks"])
 def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False, database=Depends(get_prepared_database)):
     target_date = date
     table_name = "t_sniper_daily" if is_sniper else "t_strategy_daily"
@@ -295,7 +298,9 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
         SELECT c.cost_50, c.cost_85, c.winner_rate, 
                s.sniper_score as final_score, s.pct_chg, s.turnover_rate, s.volume_ratio,
                s.sniper_score, s.sniper_rejected as rejected, s.sniper_reject_reason as reject_reason,
-               s.s_holder_score, s.s_chip_vacuum_score, s.s_ma_state_score,
+               s.sniper_rejected, s.sniper_reject_reason,
+               s.chaos_index_val, s.score_chaos, s.s_holder_score,
+               s.s_chip_vacuum_score, s.s_ma_state_score,
                s.s_safety_margin_score, s.s_macd_weekly_score, s.s_low_volume_score,
                s.s_golden_pit_score, s.s_ignition_score, s.s_top_list_score,
                s.s_news_score, s.s_base_total, s.s_dynamic_total
@@ -428,7 +433,8 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
     # 获取最近 7 天的极简狙击手评分历史
     sniper_history_sql = """
     SELECT trade_date, sniper_score as final_score, pct_chg, turnover_rate, volume_ratio,
-           s_holder_score, s_chip_vacuum_score, s_ma_state_score, s_safety_margin_score, s_macd_weekly_score,
+           chaos_index_val, score_chaos, s_holder_score,
+           s_chip_vacuum_score, s_ma_state_score, s_safety_margin_score, s_macd_weekly_score,
            s_low_volume_score, s_golden_pit_score, s_ignition_score, s_top_list_score, s_news_score,
            s_base_total, s_dynamic_total, sniper_rejected as rejected, sniper_reject_reason as reject_reason
     FROM t_sniper_daily
@@ -448,6 +454,8 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
             "sniper_rejected": to_int(row_get(row, "rejected")),
             "sniper_reject_reason": row_get(row, "reject_reason"),
             "s_holder_score": to_int(row_get(row, "s_holder_score")),
+            "chaos_index_val": to_float(row_get(row, "chaos_index_val")),
+            "score_chaos": to_int(row_get(row, "score_chaos")),
             "s_chip_vacuum_score": to_int(row_get(row, "s_chip_vacuum_score")),
             "s_ma_state_score": to_int(row_get(row, "s_ma_state_score")),
             "s_safety_margin_score": to_int(row_get(row, "s_safety_margin_score")),
@@ -513,6 +521,8 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
             sniper_rejected=to_int(core.get("sniper_rejected")) if is_sniper else None,
             sniper_reject_reason=row_get(core, "sniper_reject_reason") if is_sniper else None,
             s_holder_score=to_int(core.get("s_holder_score")) if is_sniper else None,
+            chaos_index_val=to_float(core.get("chaos_index_val")) if is_sniper else None,
+            score_chaos=to_int(core.get("score_chaos")) if is_sniper else None,
             s_chip_vacuum_score=to_int(core.get("s_chip_vacuum_score")) if is_sniper else None,
             s_ma_state_score=to_int(core.get("s_ma_state_score")) if is_sniper else None,
             s_safety_margin_score=to_int(core.get("s_safety_margin_score")) if is_sniper else None,
@@ -529,7 +539,7 @@ def get_detail(ts_code: str, date: Optional[str] = None, is_sniper: bool = False
 
 
 
-@router.post("/stocks/batch-search", response_model=BatchSearchResponse)
+@router.post("/stocks/batch-search", response_model=BatchSearchResponse, tags=["stocks"])
 def batch_search(payload: BatchSearchRequest, database=Depends(get_prepared_database)):
     queries = [q.strip() for q in payload.queries if q.strip()]
     if not queries:
@@ -574,7 +584,7 @@ def batch_search(payload: BatchSearchRequest, database=Depends(get_prepared_data
     return BatchSearchResponse(data=BatchSearchPayload(items=items))
 
 
-@router.get("/data-health")
+@router.get("/data-health", tags=["data-health"])
 def get_data_health(database=Depends(get_prepared_database)):
     return {"code": 200, "msg": "success", "data": build_data_health_report(database)}
 
@@ -840,7 +850,7 @@ def _backfill_premium(database) -> dict[str, Any]:
     }
 
 
-@router.post("/data-health/backfill/{target}")
+@router.post("/data-health/backfill/{target}", tags=["data-health"])
 def backfill_data_health_field(target: str, database=Depends(get_prepared_database)):
     if target == "volume_ratio":
         data = _backfill_volume_ratio(database)
@@ -852,7 +862,7 @@ def backfill_data_health_field(target: str, database=Depends(get_prepared_databa
     return {"code": 200, "msg": "success", "data": data}
 
 
-@router.post("/analysis/stock_advice", response_model=StockAdviceResponse)
+@router.post("/analysis/stock_advice", response_model=StockAdviceResponse, tags=["analysis"])
 def stock_advice(payload: StockAdviceRequest, database=Depends(get_prepared_database)):
     advice = generate_stock_advice(database, load_config().ai, payload.symbol, payload.market)
     return StockAdviceResponse(
@@ -867,7 +877,7 @@ def stock_advice(payload: StockAdviceRequest, database=Depends(get_prepared_data
     )
 
 
-@router.get("/job/stages", response_model=JobStageMetricsResponse)
+@router.get("/job/stages", response_model=JobStageMetricsResponse, tags=["jobs"])
 def get_job_stage_metrics(
     job_name: Optional[str] = None,
     run_id: Optional[int] = None,
@@ -890,7 +900,7 @@ def get_job_stage_metrics(
     return JobStageMetricsResponse(data=JobStageMetricsPayload(items=payload["items"], summary=payload["summary"]))
 
 
-@router.get("/job/logs/summary", response_model=JobLogReportResponse)
+@router.get("/job/logs/summary", response_model=JobLogReportResponse, tags=["jobs"])
 def get_job_log_summary(days: int = 7, limit: int = 10, job_name: Optional[str] = None):
     safe_days = max(1, min(days, 90))
     safe_limit = max(1, min(limit, 50))
@@ -898,7 +908,7 @@ def get_job_log_summary(days: int = 7, limit: int = 10, job_name: Optional[str] 
     return JobLogReportResponse(data=JobLogReportPayload(**report))
 
 
-@router.get("/job/runs", response_model=JobRunsResponse)
+@router.get("/job/runs", response_model=JobRunsResponse, tags=["jobs"])
 def get_job_runs(days: int = 7, limit: int = 20, job_name: Optional[str] = None, status: Optional[str] = None):
     safe_days = max(1, min(days, 90))
     safe_limit = max(1, min(limit, 100))
@@ -914,7 +924,7 @@ def get_job_runs(days: int = 7, limit: int = 20, job_name: Optional[str] = None,
     return JobRunsResponse(data=JobRunsPayload(**payload))
 
 
-@router.get("/jobs/tushare-latest")
+@router.get("/jobs/tushare-latest", tags=["jobs"])
 def check_tushare_latest():
     try:
         from backend.app.config import load_config
@@ -947,12 +957,12 @@ def check_tushare_latest():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.get("/jobs/definitions")
+@router.get("/jobs/definitions", tags=["jobs"])
 def get_manual_job_definitions():
     return {"code": 200, "msg": "success", "data": {"items": list_job_definitions()}}
 
 
-@router.get("/jobs/tasks")
+@router.get("/jobs/tasks", tags=["jobs"])
 def get_manual_job_tasks(database=Depends(get_prepared_database)):
     items = list_manual_tasks()
     latest_date = None
@@ -965,7 +975,7 @@ def get_manual_job_tasks(database=Depends(get_prepared_database)):
     return {"code": 200, "msg": "success", "data": {"items": items, "latest_trade_date": latest_date}}
 
 
-@router.post("/jobs/history/run")
+@router.post("/jobs/history/run", tags=["jobs"])
 def start_history_job(payload: HistoryJobRunRequest):
     try:
         start_dt = datetime.strptime(payload.start_date, "%Y%m%d")
@@ -986,7 +996,7 @@ def start_history_job(payload: HistoryJobRunRequest):
     return {"code": 200, "msg": "success", "data": {"task": task.__dict__}}
 
 
-@router.post("/jobs/daily-date/run")
+@router.post("/jobs/daily-date/run", tags=["jobs"])
 def start_daily_date_job(payload: DailyDateJobRunRequest):
     try:
         datetime.strptime(payload.trade_date, "%Y%m%d")
@@ -1001,7 +1011,7 @@ def start_daily_date_job(payload: DailyDateJobRunRequest):
     return {"code": 200, "msg": "success", "data": {"task": task.__dict__}}
 
 
-@router.post("/jobs/{job_name}/run")
+@router.post("/jobs/{job_name}/run", tags=["jobs"])
 def start_manual_job(job_name: str):
     try:
         task = run_manual_job(job_name)
@@ -1012,12 +1022,12 @@ def start_manual_job(job_name: str):
     return {"code": 200, "msg": "success", "data": {"task": task.__dict__}}
 
 
-@router.get("/tushare-token")
+@router.get("/tushare-token", tags=["settings"])
 def get_tushare_token_status():
     return {"code": 200, "msg": "success", "data": get_desktop_tushare_status()}
 
 
-@router.put("/tushare-token")
+@router.put("/tushare-token", tags=["settings"])
 def update_tushare_token(payload: TushareTokenUpdateRequest):
     try:
         data = save_desktop_tushare_token(payload.token)
@@ -1026,7 +1036,7 @@ def update_tushare_token(payload: TushareTokenUpdateRequest):
     return {"code": 200, "msg": "success", "data": data}
 
 
-@router.get("/job/tables/trends", response_model=JobTableTrendResponse)
+@router.get("/job/tables/trends", response_model=JobTableTrendResponse, tags=["jobs"])
 def get_job_table_trends(days: int = 7, limit: int = 20, job_name: Optional[str] = None):
     safe_days = max(1, min(days, 90))
     safe_limit = max(1, min(limit, 100))
@@ -1034,14 +1044,14 @@ def get_job_table_trends(days: int = 7, limit: int = 20, job_name: Optional[str]
     return JobTableTrendResponse(data=JobTableTrendPayload(**payload))
 
 
-@router.get("/job/failures/trends", response_model=JobFailureTrendResponse)
+@router.get("/job/failures/trends", response_model=JobFailureTrendResponse, tags=["jobs"])
 def get_job_failure_trends(days: int = 7, job_name: Optional[str] = None):
     safe_days = max(1, min(days, 90))
     payload = summarize_failure_trends(days=safe_days, job_name=job_name)
     return JobFailureTrendResponse(data=JobFailureTrendPayload(**payload))
 
 
-@router.get("/job/failures/{run_id}", response_model=JobFailureDetailResponse)
+@router.get("/job/failures/{run_id}", response_model=JobFailureDetailResponse, tags=["jobs"])
 def get_job_failure(run_id: int):
     try:
         payload = get_job_failure_detail(run_id=run_id)
@@ -1050,13 +1060,13 @@ def get_job_failure(run_id: int):
     return JobFailureDetailResponse(data=JobFailureDetailPayload(**payload))
 
 
-@router.get("/runtime-config", response_model=RuntimeConfigResponse)
+@router.get("/runtime-config", response_model=RuntimeConfigResponse, tags=["settings"])
 def get_runtime_config(database=Depends(get_prepared_database)):
     jobs = get_runtime_jobs_config(database)
     return RuntimeConfigResponse(data=RuntimeConfigPayload(jobs=jobs))
 
 
-@router.put("/runtime-config", response_model=RuntimeConfigResponse)
+@router.put("/runtime-config", response_model=RuntimeConfigResponse, tags=["settings"])
 def update_runtime_config(payload: RuntimeConfigUpdateRequest, database=Depends(get_prepared_database)):
     try:
         jobs = set_runtime_jobs_config(database, payload.jobs or {})
@@ -1065,7 +1075,7 @@ def update_runtime_config(payload: RuntimeConfigUpdateRequest, database=Depends(
     return RuntimeConfigResponse(data=RuntimeConfigPayload(jobs=jobs))
 
 
-@router.post("/ambush", response_model=ApiResponse)
+@router.post("/ambush", response_model=ApiResponse, tags=["watchlist"])
 def add_to_ambush_pool(payload: AmbushPoolCreate, database=Depends(get_prepared_database)):
     """添加股票到埋伏池"""
     # 检查股票是否存在
@@ -1093,7 +1103,7 @@ def add_to_ambush_pool(payload: AmbushPoolCreate, database=Depends(get_prepared_
     return ApiResponse(msg="添加成功")
 
 
-@router.put("/ambush/{ts_code}", response_model=ApiResponse)
+@router.put("/ambush/{ts_code}", response_model=ApiResponse, tags=["watchlist"])
 def update_ambush_pool(ts_code: str, payload: AmbushPoolUpdate, database=Depends(get_prepared_database)):
     """更新埋伏池中的股票信息"""
     existing = database.fetch_one(

@@ -252,7 +252,7 @@ let timer = null
 
 const preferredOrder = ['daily', 'weekly', 'monthly', 'yearly']
 const jobDescriptions = {
-  daily: '最新交易日行情、龙虎榜、筹码、策略字段',
+  daily: '最新交易日行情、换手率、主力控盘度与策略字段',
   weekly: '申万行业与股票基础扩展字段',
   monthly: '概念明细、限售解禁、受影响策略局部重算',
   yearly: '财务指标与策略全量重算'

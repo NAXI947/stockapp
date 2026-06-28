@@ -4,7 +4,12 @@ from datetime import date
 
 import pytest
 
-from backend.app.ingest import DataIngestionService, FULL_MARKET_SUPPLEMENTAL_SPECS, TableSpec
+from backend.app.ingest import (
+    COMMON_DATE_SUPPLEMENTAL_SPECS,
+    DataIngestionService,
+    FULL_MARKET_SUPPLEMENTAL_SPECS,
+    TableSpec,
+)
 from backend.app.job_checkpoint import JobCheckpointStore
 from backend.app.job_runner import JOB_DEFINITIONS
 
@@ -55,6 +60,12 @@ def test_manual_daily_uses_latest_strategy_rebuild():
     daily_steps = JOB_DEFINITIONS["daily"]["steps"]
 
     assert daily_steps[2] == ("job_daily_strategy.py", ["--latest-only"])
+
+
+def test_data_update_no_longer_fetches_shareholder_counts():
+    api_names = {spec.api_name for spec in COMMON_DATE_SUPPLEMENTAL_SPECS}
+
+    assert "stk_holdernumber" not in api_names
 
 
 def test_manual_update_date_job_passes_date_to_daily_steps():

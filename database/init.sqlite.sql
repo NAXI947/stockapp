@@ -274,6 +274,8 @@ CREATE TABLE IF NOT EXISTS t_sniper_daily (
   sniper_score INTEGER NOT NULL DEFAULT 0,
   sniper_rejected INTEGER NOT NULL DEFAULT 0,
   sniper_reject_reason TEXT,
+  chaos_index_val REAL DEFAULT NULL,
+  score_chaos INTEGER NOT NULL DEFAULT 0,
   s_holder_score INTEGER NOT NULL DEFAULT 0,
   s_chip_vacuum_score INTEGER NOT NULL DEFAULT 0,
   s_ma_state_score INTEGER NOT NULL DEFAULT 0,
@@ -295,5 +297,4 @@ CREATE TABLE IF NOT EXISTS t_sniper_daily (
 CREATE INDEX IF NOT EXISTS idx_sniper_trade_date ON t_sniper_daily (trade_date);
 CREATE INDEX IF NOT EXISTS idx_sniper_score ON t_sniper_daily (sniper_score);
 CREATE INDEX IF NOT EXISTS idx_sniper_trade_score_code ON t_sniper_daily (trade_date, sniper_score, ts_code);
-
 

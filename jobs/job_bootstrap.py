@@ -97,6 +97,8 @@ def _apply_mysql_upgrade_columns(database, schema: str) -> int:
         ('t_strategy_daily', 'st_risk', "INT DEFAULT 0 COMMENT 'ST风险: 名称含ST'"),
         ('t_strategy_daily', 'rejected', "INT DEFAULT 0 COMMENT '准入拒绝: 0=通过,1=拒绝'"),
         ('t_strategy_daily', 'reject_reason', "TEXT COMMENT '拒绝原因: 未通过准入的条件'"),
+        ('t_sniper_daily', 'chaos_index_val', "DOUBLE DEFAULT NULL COMMENT '量价无序度原始值'"),
+        ('t_sniper_daily', 'score_chaos', "INT NOT NULL DEFAULT 0 COMMENT '主力控盘度评分(0/5/10/15)'"),
     ]
     applied = 0
     for table, column, definition_sql in migrations:

@@ -31,6 +31,8 @@ class StockStrategy(ABC):
         float_risk: int,
         top_list_data: List[Dict] = None,
         stock_name: str = None,
+        weekly_series: List[Dict[str, Any]] = None,
+        block_trade_data: List[Dict[str, Any]] = None,
     ) -> StrategyResult | None:
         """
         Calculate strategy score for a specific day in the time series.
@@ -41,6 +43,8 @@ class StockStrategy(ABC):
             float_risk: Whether there's an upcoming float risk (1 for yes, 0 for no).
             top_list_data: Top list net buy records in recent days.
             stock_name: The stock's chinese name for ST risk checks.
+            weekly_series: Optional weekly bars used by strategies that need them.
+            block_trade_data: Optional block-trade records used by strategies that need them.
             
         Returns:
             StrategyResult if successful, None if calculation cannot be performed (e.g. insufficient data).

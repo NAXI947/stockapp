@@ -3,7 +3,7 @@
 
 用途：检查并补齐 SQLite 数据库中缺失的数据表，使极简狙击手策略能正常运行。
 包括：t_adj_factor, t_daily_basic, t_cyq_perf, t_weekly_bar,
-      t_stk_holdernumber, t_block_trade, t_top_list, t_strategy_daily
+      t_block_trade, t_top_list, t_strategy_daily
 
 使用方式：
   cd d:\\python\\stockapp
@@ -86,8 +86,8 @@ def run_diagnostics(database) -> Dict[str, int]:
         "t_share_float",
         "t_fin_indicator",
         "t_strategy_daily",
+        "t_sniper_daily",
         "t_weekly_bar",
-        "t_stk_holdernumber",
         "t_block_trade",
         "t_concept_detail",
     ]
@@ -116,13 +116,13 @@ def print_diagnostic_report(counts: Dict[str, int]) -> None:
     }
     IMPORTANT_FOR_SNIPER = {
         "t_weekly_bar": "周线行情（MACD周线评分 15分）",
-        "t_stk_holdernumber": "股东户数（筹码结构 15分）",
         "t_cyq_perf": "筹码绩效（真空度参考）",
         "t_top_list": "龙虎榜（动态信号 7分）",
         "t_block_trade": "大宗交易（龙虎榜补充）",
     }
     SUPPLEMENTAL = {
         "t_strategy_daily": "策略评分表",
+        "t_sniper_daily": "极简狙击手评分表（含主力控盘度）",
         "t_share_float": "限售股解禁",
         "t_fin_indicator": "财务指标",
         "t_concept_detail": "概念板块",
@@ -289,9 +289,9 @@ def run_backfill(config, database) -> None:
     
     # ──────────────────────────────────────────────────────────
     # Step 2: 按日补齐 COMMON 日期驱动表
-    #         (top_list, weekly_bar, stk_holdernumber, block_trade)
+    #         (top_list, weekly_bar, block_trade)
     # ──────────────────────────────────────────────────────────
-    _print_header("Step 2/5: 补齐日期驱动表 (周线/股东户数/龙虎榜/大宗)")
+    _print_header("Step 2/5: 补齐日期驱动表 (周线/龙虎榜/大宗)")
     
     # 这些表使用 COMMON_DATE_SUPPLEMENTAL_SPECS 进行同步
     common_date_summary: Dict[str, Dict[str, Any]] = {}

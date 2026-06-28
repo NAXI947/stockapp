@@ -43,6 +43,8 @@ class PickItem(BaseModel):
     sniper_rejected: Optional[int] = None
     sniper_reject_reason: Optional[str] = None
     s_holder_score: Optional[int] = None
+    chaos_index_val: Optional[float] = None
+    score_chaos: Optional[int] = None
     s_chip_vacuum_score: Optional[int] = None
     s_ma_state_score: Optional[int] = None
     s_safety_margin_score: Optional[int] = None
@@ -118,6 +120,8 @@ class DetailPayload(BaseModel):
     sniper_rejected: Optional[int] = None
     sniper_reject_reason: Optional[str] = None
     s_holder_score: Optional[int] = None
+    chaos_index_val: Optional[float] = None
+    score_chaos: Optional[int] = None
     s_chip_vacuum_score: Optional[int] = None
     s_ma_state_score: Optional[int] = None
     s_safety_margin_score: Optional[int] = None

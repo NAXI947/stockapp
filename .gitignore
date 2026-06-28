@@ -22,6 +22,9 @@ backups/
 *.md
 !HISTORY_TASK_BASELINE.md
 !DOCS_ARCHIVE_NOTES.md
+!README.md
+!docs/
+!docs/**/*.md
 
 # Environment / secrets
 .env
